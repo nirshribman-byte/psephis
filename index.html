@@ -330,14 +330,16 @@ const LAYOUTS = [
   {id:'vermiculatum', name:'Vermiculatum', cap:'fine, contour-hugging'},
   {id:'musivum',      name:'Musivum',      cap:'flow fills the field'},
   {id:'tessellatum',  name:'Tessellatum',  cap:'straight courses'},
-  {id:'regulatum',    name:'Regulatum',    cap:'strict grid'},
+  {id:'regulatum',    name:'Regulatum',    cap:'hand-set grid'},
 ];
 /* per-opus engine parameters */
 const LAY_CFG = {
   vermiculatum:{falloff:3.2, waves:1,   outline:true,  adaptive:true,  jitter:1},
   musivum:     {falloff:12,  waves:0.5, outline:true,  adaptive:true,  jitter:1},
   tessellatum: {falloff:2.2, waves:0,   outline:true,  adaptive:false, jitter:0.8},
-  regulatum:   {falloff:0,   waves:0,   outline:false, adaptive:false, jitter:0.3},
+  /* quasi: hand-set grid — smooth noise rotation field (radians, ±quasi/2),
+     the reference's "every stone tilts with its neighbors" look */
+  regulatum:   {falloff:0,   waves:0,   outline:false, adaptive:false, jitter:0.85, quasi:0.95},
 };
 /* single-select groups as proper radiogroups with roving tabindex */
 function makeRadioGroup(wrap, items, key, renderLabel){
@@ -392,11 +394,7 @@ document.head.insertAdjacentHTML('beforeend',
 /* strict grid has no hand: dim the irregularity control under Regulatum;
    close-cut joints have no mortar width: dim the gap slider */
 function syncDim(){
-  const strict=controls.layout==='regulatum';
-  const el=$('c_irr');el.disabled=strict;
-  el.closest('.section').classList.toggle('dimmed',strict);
-  el.closest('.section').querySelector('.cap').textContent=
-    strict?'A strict grid is cut by rule, not by hand':'Irregularity of each cut & row';
+  /* regulatum is now a hand-set grid — the maker's hand applies everywhere */
   const close=controls.joint==='close';
   const g=$('c_gap');g.disabled=close;
   $('o_gap').textContent=close?'Tight':(+g.value).toFixed(1);
@@ -660,6 +658,8 @@ async function renderMosaic(token,maxdim){
   const c2=new Float32Array(aw*ah), s2=new Float32Array(aw*ah);
   const cohArr=new Float32Array(aw*ah);   /* edge coherence: contour vs mere texture */
   const falloff=(T/A)*CFG.falloff;
+  /* hand-set grid: smooth rotation noise, coherent over ~8 stone-widths */
+  const quasiNoise=CFG.quasi?makeValueNoise(rand,aw,ah,Math.max(2.5,(T/A)*5)):null;
   for(let y=0;y<ah;y++)for(let x=0;x<aw;x++){
     const i=y*aw+x;
     const d=jxx[i]-jyy[i], tr=jxx[i]+jyy[i];
@@ -675,7 +675,9 @@ async function renderMosaic(token,maxdim){
     const wImg=Math.min(1,bcoh*2.2)*(CFG.waves?1:0);
     /* a still sky must lie still: wave amplitude follows local activity */
     const calm=Math.min(1, magBB[i]/(thr*0.9));
-    const thWave=(Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3)*CFG.waves*(0.18+0.82*calm);
+    const thWave=CFG.quasi
+      ? (quasiNoise(x,y)-0.5)*CFG.quasi
+      : (Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3)*CFG.waves*(0.18+0.82*calm);
     const cB=wImg*Math.cos(2*thBT)+(1-wImg)*Math.cos(2*thWave);
     const sB=wImg*Math.sin(2*thBT)+(1-wImg)*Math.sin(2*thWave);
     const w=falloff>0 ? Math.exp(-dist[i]/falloff)*Math.min(1,coh*1.6) : 0;
