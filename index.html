@@ -255,8 +255,8 @@ input[type=range]:disabled{opacity:.35;cursor:default}
       <input type="range" id="c_size" min="4" max="26" value="10" step="1" aria-label="Tessera size">
     </div>
     <div class="section">
-      <label class="title" for="c_gap">Grout gap <output id="o_gap" aria-live="polite">2.0</output></label>
-      <p class="cap">Mortar showing between stones</p>
+      <label class="title" for="c_gap">Joints <output id="o_gap" aria-live="polite">2.0</output></label>
+      <div class="styles" id="jointBtns" role="radiogroup" aria-label="Joint style" style="margin-top:4px;margin-bottom:4px"></div>
       <input type="range" id="c_gap" min="0.5" max="6" value="2" step="0.5" aria-label="Grout gap">
     </div>
     <div class="section">
@@ -315,8 +315,8 @@ const stage = $('stage'), drop = $('drop'), fileInp = $('file');
 const dlBtn = $('download'), newBtn = $('newimg'), recutBtn = $('recut');
 
 /* ---------- controls ---------- */
-const controls = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
-const DEFAULTS = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const controls = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum', joint:'mortar'};
+const DEFAULTS = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum', joint:'mortar'};
 const bindings = [['size','c_size','o_size',v=>v],['gap','c_gap','o_gap',v=>v.toFixed(1)],
   ['pal','c_pal','o_pal',v=>v],['fid','c_fid','o_fid',v=>v===0?'Free':v],
   ['irr','c_irr','o_irr',v=>v],['age','c_age','o_age',v=>v===0?'None':v]];
@@ -362,12 +362,19 @@ function makeRadioGroup(wrap, items, key, renderLabel){
 function selectRadio(wrap,items,key,idx){
   controls[key]=items[idx].id;
   [...wrap.children].forEach((x,i)=>{x.setAttribute('aria-checked',i===idx?'true':'false');x.tabIndex=i===idx?0:-1;});
-  if(key==='layout')syncDim();
+  if(key==='layout'||key==='joint')syncDim();
   scheduleRender();
 }
 const layWrap = $('layBtns');
 makeRadioGroup(layWrap, LAYOUTS, 'layout',
   l=>`${l.name}<br><span style="font-size:11px;font-weight:400;color:#8d8172">${l.cap}</span>`);
+
+const JOINTS=[
+  {id:'mortar', name:'Mortar'},
+  {id:'close',  name:'Close cut'},
+];
+const jointWrap=$('jointBtns');
+makeRadioGroup(jointWrap, JOINTS, 'joint', j=>j.name);
 const STYLES = [
   {id:'antique', name:'Antique',  sw:['#c8b89a','#a4502e','#4a7fae','#e8ddc4']},
   {id:'marble',  name:'Marble',   sw:['#efe9dd','#b9b2a4','#6d675c','#2f2b25']},
@@ -382,13 +389,17 @@ makeRadioGroup(styleWrap, STYLES, 'style',
 document.head.insertAdjacentHTML('beforeend',
   '<style>.styles button[aria-checked="true"]{border-color:var(--terra);color:var(--ink);font-weight:700;background:rgba(164,80,46,.12);box-shadow:inset 3px 0 0 var(--terra), inset 0 0 0 1px var(--terra)}</style>');
 
-/* strict grid has no hand: dim the irregularity control under Regulatum */
+/* strict grid has no hand: dim the irregularity control under Regulatum;
+   close-cut joints have no mortar width: dim the gap slider */
 function syncDim(){
   const strict=controls.layout==='regulatum';
   const el=$('c_irr');el.disabled=strict;
   el.closest('.section').classList.toggle('dimmed',strict);
   el.closest('.section').querySelector('.cap').textContent=
     strict?'A strict grid is cut by rule, not by hand':'Irregularity of each cut & row';
+  const close=controls.joint==='close';
+  const g=$('c_gap');g.disabled=close;
+  $('o_gap').textContent=close?'Tight':(+g.value).toFixed(1);
 }
 
 /* reset to defaults */
@@ -401,6 +412,7 @@ $('reset').onclick=()=>{
   }
   [...layWrap.children].forEach((b,i)=>{b.setAttribute('aria-checked',LAYOUTS[i].id===DEFAULTS.layout?'true':'false');b.tabIndex=LAYOUTS[i].id===DEFAULTS.layout?0:-1;});
   [...styleWrap.children].forEach((b,i)=>{b.setAttribute('aria-checked',STYLES[i].id===DEFAULTS.style?'true':'false');b.tabIndex=STYLES[i].id===DEFAULTS.style?0:-1;});
+  [...jointWrap.children].forEach((b,i)=>{b.setAttribute('aria-checked',JOINTS[i].id===DEFAULTS.joint?'true':'false');b.tabIndex=JOINTS[i].id===DEFAULTS.joint?0:-1;});
   syncDim();
   scheduleRender();
 };
@@ -556,6 +568,12 @@ async function render(maxdim=FULL_DIM, thenFull=false){
       }
       window.__renderDone = !thenFull;
       if(thenFull) fullTimer=setTimeout(()=>render(FULL_DIM,false),240);
+      if(window.__shotMode && window.__renderDone){
+        /* headless verification: bare canvas at 1:1 pixels */
+        document.body.innerHTML='';document.body.style.cssText='margin:0;background:#111';
+        canvas.style.cssText='display:block;max-width:none;max-height:none';
+        document.body.appendChild(canvas);
+      }
     }
   }
 }
@@ -578,7 +596,11 @@ async function renderMosaic(token,maxdim){
   const scl=Math.min(1, maxdim/Math.max(srcImg.naturalWidth,srcImg.naturalHeight));
   const W=Math.round(srcImg.naturalWidth*scl), H=Math.round(srcImg.naturalHeight*scl);
   const resScale=Math.max(W,H)/1500;
-  const T=Math.max(3.2,controls.size*resScale), GAP=Math.max(0.4,controls.gap*resScale);
+  const T=Math.max(3.2,controls.size*resScale);
+  /* close cut: stones butt against each other — a slight negative gap plus
+     enlarged quads leaves only a hairline seam, no mortar band */
+  const CLOSE=controls.joint==='close';
+  const GAP=CLOSE ? -T*0.06 : Math.max(0.4,controls.gap*resScale);
   canvas.width=W; canvas.height=H;
 
   /* --- source pixels --- */
@@ -627,6 +649,7 @@ async function renderMosaic(token,maxdim){
   const magBB=Float32Array.from(magB); boxBlur(magBB,aw,ah,Math.max(4,Math.round(T/A)*4));
   const thr=percentile(magB,0.86);
   const ridgeThr=percentile(magB,0.955);          // strongest edges -> outline rows
+  const ridgeThinThr=percentile(magB,0.90);       // thin but highly coherent lines
   const dist=new Float32Array(aw*ah).fill(1e5);
   for(let i=0;i<aw*ah;i++) if(magB[i]>thr) dist[i]=0;
   chamfer(dist,aw,ah);
@@ -750,6 +773,15 @@ async function renderMosaic(token,maxdim){
     }
   }
   const inSky=(x,y)=>skyMask[Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0))]===1;
+  /* mean sky color + local calm — used to purify quiet blue fields */
+  const skyMean=[0,0,0];
+  {let n=0;for(let y=0;y<ah;y++)for(let x=0;x<aw;x++)if(skyMask[y*aw+x]){
+    const i=px(x*A,y*A);skyMean[0]+=img[i];skyMean[1]+=img[i+1];skyMean[2]+=img[i+2];n++;}
+   if(n){skyMean[0]/=n;skyMean[1]/=n;skyMean[2]/=n;}}
+  const calmAt=(x,y)=>{
+    const i=Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0));
+    return 1-Math.min(1,magBB[i]/(thr*0.9));
+  };
   /* stone trays: which stones may be laid in the sky */
   const skyStone=cents.map(c=>{
     const l=c[0]*0.299+c[1]*0.587+c[2]*0.114;
@@ -868,16 +900,28 @@ async function renderMosaic(token,maxdim){
     occupy(x,y,sz+GAP);
     placedCount++;
     if(missing(x,y)){tiles.push([x,y,th,null,sz]);return -3;}
-    const avg=avgColorAt(x,y,sz);
+    let avg=avgColorAt(x,y,sz);
     const idx=forceIdx!=null?forceIdx:nearestStone(avg,prevIdx,edgeDistAt(x,y),inSky(x,y));
     let col=cents[idx];
     if(FID>0){
-      const alum=avg[0]*0.299+avg[1]*0.587+avg[2]*0.114;
-      if(alum>=brightCut && brightCut>150 && forceIdx==null){
-        /* specular anchor: the sun, glints, burning cloud edges — laid as
-           near-full-brightness accent stones (gold-leaf smalti, in period) */
-        col=[clamp(avg[0]*1.06+8),clamp(avg[1]*1.06+8),clamp(avg[2]*1.05+6)];
+      let a0=avg[0],a1=avg[1],a2=avg[2];
+      /* calm-sky purity: quiet blue fields pull gently toward the sky's own
+         mean, so grey-tan strays stop peppering a clean cerulean */
+      if(forceIdx==null && inSky(x,y)){
+        const c=calmAt(x,y)*0.28*FID;
+        a0=lerp(a0,skyMean[0],c);a1=lerp(a1,skyMean[1],c);a2=lerp(a2,skyMean[2],c);
+      }
+      const alum=a0*0.299+a1*0.587+a2*0.114;
+      /* peak tap: a highlight smaller than one tessera (the sun disc) still
+         snaps its stone to specular instead of being averaged away */
+      const peak=taps[4];
+      const isSpec=brightCut>150 && forceIdx==null &&
+        (alum>=brightCut || (peak[3]>=brightCut && peak[3]>alum+26));
+      if(isSpec){
+        const s=alum>=brightCut?[a0,a1,a2]:[peak[0],peak[1],peak[2]];
+        col=[clamp(s[0]*1.06+8),clamp(s[1]*1.06+8),clamp(s[2]*1.05+6)];
       } else {
+        const avgP=[a0,a1,a2]; avg=avgP;
         /* photo-true tinting: hue and tone from the photograph, the stone
            contributes only texture. Outline stones stay just mildly darker. */
         const t=forceIdx!=null?FID*0.6:FID;
@@ -913,6 +957,9 @@ async function renderMosaic(token,maxdim){
     /* outline only STRUCTURAL contours (coherent edges) — mere texture
        (grass, salt crust) must not be carpeted in darkened outline stones */
     if(magB[i]>ridgeThr && cohArr[i]>0.42)ridge.push([x*A, y*A, magB[i]]);
+    /* thin high-contrast structures (umbrella ribs, stems): weaker gradient
+       but very coherent — they earn an outline course too */
+    else if(magB[i]>ridgeThinThr && cohArr[i]>0.68)ridge.push([x*A, y*A, magB[i]*0.8]);
     /* the sky/ground meeting line is always an outline course, even when
        the photographic gradient there is soft — keeps the horizon crisp */
     else if(skyMask[i]!==skyMask[i+aw])ridge.push([x*A, y*A, ridgeThr*1.5]);
@@ -1020,8 +1067,10 @@ async function renderMosaic(token,maxdim){
   const LX=-0.707,LY=-0.707;
   /* bevel strokes lighten their touch as fidelity rises — on 5px stones the
      dark edge alone can sink a midtone field by a stop */
-  const litStroke=`rgba(255,252,235,${(0.28*(1-FID*0.3)).toFixed(3)})`;
-  const darkStroke=`rgba(20,12,5,${(0.22*(1-FID*0.45)).toFixed(3)})`;
+  const litStroke=CLOSE?'rgba(255,252,235,0.16)':`rgba(255,252,235,${(0.28*(1-FID*0.3)).toFixed(3)})`;
+  const darkStroke=CLOSE?'rgba(25,16,8,0.25)':`rgba(20,12,5,${(0.22*(1-FID*0.45)).toFixed(3)})`;
+  const expand=CLOSE?1.10:1;   /* close-cut quads overlap to cover the ground */
+  const seamStroke='rgba(28,19,9,0.30)';   /* hairline joint between butted stones */
   let drawn=0, laid=0;
   for(const [x,y,th0,col,sz] of tiles){
     if(!col){
@@ -1035,7 +1084,7 @@ async function renderMosaic(token,maxdim){
     }
     const th=th0+(rand()-0.5)*IRR*0.35;
     const co=Math.cos(th),sn=Math.sin(th);
-    const half=sz/2, jit=IRR*sz*0.16;
+    const half=(sz/2)*expand, jit=IRR*sz*0.16*(CLOSE?0.7:1);
     const pts=[];
     const base=[[-half,-half],[half,-half],[half,half],[-half,half]];
     for(const [bx,by] of base){
@@ -1050,6 +1099,15 @@ async function renderMosaic(token,maxdim){
     ctx.closePath();
     ctx.fillStyle=`rgb(${r|0},${g|0},${b|0})`;
     ctx.fill();
+    if(CLOSE){
+      /* every stone keeps its own hairline seam — later overlapping
+         neighbors repaint theirs, so the joint network stays continuous.
+         At high fidelity the seam is a darker shade of the stone itself,
+         so no warm bed scratches across a clean blue sky. */
+      ctx.strokeStyle=FID>=0.5?`rgba(${(r*0.42)|0},${(g*0.42)|0},${(b*0.46)|0},0.5)`:seamStroke;
+      ctx.lineWidth=Math.max(0.45,sz*0.055);
+      ctx.stroke();
+    }
     for(let k=0;k<4;k++){
       const p1=pts[k],p2=pts[(k+1)%4];
       const nx=(p2[1]-p1[1]),ny=-(p2[0]-p1[0]);
@@ -1245,12 +1303,16 @@ function makeValueNoise(rand,W,H,scale){
   for(const [k,cid] of [['size','c_size'],['gap','c_gap'],['pal','c_pal'],['fid','c_fid'],['irr','c_irr'],['age','c_age']]){
     if(h.get(k)){$(cid).value=h.get(k);$(cid).dispatchEvent(new Event('input'));}
   }
+  if(h.get('joint')){controls.joint=h.get('joint');
+    [...jointWrap.children].forEach((b,i)=>{const on=JOINTS[i].id===controls.joint;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;});
+    syncDim();}
   if(h.get('style')){controls.style=h.get('style');
     [...styleWrap.children].forEach((b,i)=>{const on=STYLES[i].id===controls.style;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;});}
   if(h.get('lay')){controls.layout=h.get('lay');
     [...layWrap.children].forEach((b,i)=>{const on=LAYOUTS[i].id===controls.layout;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;});
     syncDim();}
   if(h.get('seed'))seed=+h.get('seed');
+  if(h.get('shot'))window.__shotMode=true;
   sampleToDataURL(h.get('img'));
 })();
 </script>

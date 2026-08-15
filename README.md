@@ -26,6 +26,9 @@ This is not pixelation — it lays tesserae the way ancient workshops did:
   Regulatum — and four stone treatments: Antique, Marble, Smalti, True tone.
 - **Weathering** — contiguous patches of bare lime mortar, like excavated
   fragments.
+- **Joints** — classic *mortar* beds, or *close cut*: stones butted tightly
+  with only a hairline seam, the "very small stones instead of pixels" effect
+  of the finest ancient panels.
 - **Fidelity mode (wallpaper)** — a 0–100 slider from *free ancient palette*
   to *photo-true stones*: each tessera is tinted toward the photograph's true
   local tone, grout takes the image's own local color, specular highlights
@@ -44,7 +47,7 @@ download the finished panel as PNG.
 ### URL parameters (automation / reproducibility)
 
 ```
-index.html#img=<url>&size=10&gap=2&pal=16&fid=0&irr=55&age=10&style=antique&lay=vermiculatum&seed=123
+index.html#img=<url>&size=10&gap=2&pal=16&fid=0&irr=55&age=10&style=antique&lay=vermiculatum&joint=close&seed=123&shot=1
 ```
 
 `window.__renderDone === true` signals a finished full-resolution render —
