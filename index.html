@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ΨΗΦΙΣ — Mosaic Atelier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=GFS+Didot&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --plaster:#e9e0cd;
+  --ink:#2b2620;
+  --ink-soft:#5c5344;
+  --terra:#a4502e;
+  --gold:#b98a2f;
+  --panel:#f4ecdc;
+  --line:#c9bda0;
+  --shadow:0 18px 50px -18px rgba(43,38,32,.45);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Alegreya Sans',sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 700px at 75% -10%, rgba(255,252,240,.75), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(164,80,46,.08), transparent 55%),
+    var(--plaster);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.30 0 0 0 0 0.27 0 0 0 0 0.22 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.meander{
+  height:14px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14' viewBox='0 0 28 14'%3E%3Cpath d='M0 13h10V5H6v4H4V3h10v10h4V5h-4' fill='none' stroke='%23a4502e' stroke-width='1.6'/%3E%3Cpath d='M18 13h10' fill='none' stroke='%23a4502e' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat:repeat-x;background-size:28px 14px;
+  opacity:.85;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);
+}
+header{position:relative;z-index:1;display:flex;align-items:baseline;gap:18px;padding:20px 34px 10px;flex-wrap:wrap}
+header h1{font-family:'GFS Didot',serif;font-weight:400;font-size:clamp(26px,3.2vw,40px);letter-spacing:.14em}
+header h1 .psi{color:var(--terra)}
+header .sub{font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft)}
+.frame{position:relative;z-index:1;margin:0 34px}
+main{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:minmax(0,1fr) 330px;
+  gap:26px;padding:22px 34px 40px;align-items:start;
+  max-width:1460px;margin-inline:auto;
+}
+header,.frame{max-width:1460px;margin-inline:auto}
+/* ---------- stage ---------- */
+.stageWrap{display:flex;justify-content:center;min-width:0}
+#stage{
+  position:relative;
+  background:#26221c;
+  border:1px solid #1c1915;
+  outline:6px solid #efe6d2;
+  outline-offset:-7px;
+  box-shadow:var(--shadow), inset 0 0 80px rgba(0,0,0,.55);
+  border-radius:2px;
+  min-height:420px;
+  max-height:calc(100vh - 160px);
+  max-width:100%;
+  display:flex;align-items:center;justify-content:center;
+  padding:30px 30px 44px;
+  overflow:hidden;
+}
+#stage.hasArt{width:fit-content}
+#stage.zoomed{align-items:flex-start;justify-content:flex-start;overflow:auto;width:100%}
+#canvas{max-width:calc(100vw - 480px);max-height:calc(100vh - 250px);display:none;box-shadow:0 10px 40px -8px rgba(0,0,0,.7);cursor:zoom-in;transition:opacity .25s;touch-action:none;-webkit-user-select:none;user-select:none}
+#stage.zoomed #canvas{max-width:none;max-height:none;cursor:zoom-out}
+@media (max-width:900px){#canvas{max-width:calc(100vw - 80px)}}
+#stage.zoomed #canvas{max-width:none;max-height:none;cursor:zoom-out}
+#canvas.working{opacity:.4}
+#drop{
+  border:1.5px dashed rgba(233,224,205,.4);
+  border-radius:4px;color:#cfc4ab;
+  width:min(560px,90%);padding:56px 30px;text-align:center;cursor:pointer;
+  transition:border-color .2s, background .2s;
+}
+#drop:hover,#drop.over{border-color:var(--gold);background:rgba(185,138,47,.07)}
+#drop .glyph{font-family:'GFS Didot',serif;font-size:52px;color:var(--gold);line-height:1}
+#drop h2{font-family:'GFS Didot',serif;font-weight:400;font-size:22px;margin:14px 0 6px;letter-spacing:.06em}
+#drop p{font-size:14px;color:#a2977e}
+#drop p b{color:#cfc4ab}
+#samples{margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#samples img{
+  width:74px;height:52px;object-fit:cover;cursor:pointer;border-radius:2px;
+  border:2px solid rgba(233,224,205,.25);transition:transform .15s,border-color .15s;
+}
+#samples img:hover,#samples img:focus-visible{transform:translateY(-3px);border-color:var(--gold)}
+#progress{
+  position:absolute;inset:auto 26px 26px 26px;height:34px;display:none;
+  align-items:center;gap:14px;color:#e9e0cd;font-size:13px;letter-spacing:.08em;z-index:3;
+}
+#progress .bar{flex:1;height:3px;background:rgba(233,224,205,.18);border-radius:2px;overflow:hidden}
+#progress .bar i{display:block;height:100%;width:0%;background:var(--gold);transition:width .12s}
+#stats{
+  position:absolute;top:14px;right:20px;display:none;gap:14px;align-items:center;z-index:3;
+  color:#b7ab8e;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+}
+#hint{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:none;z-index:3;
+  color:#a99d80;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+  background:rgba(28,23,17,.72);padding:5px 14px;border-radius:2px;
+  transition:opacity 1.2s;
+}
+#hint.fade{opacity:0}
+#toast{
+  position:absolute;top:18px;left:50%;transform:translateX(-50%) translateY(-8px);z-index:4;
+  background:#3a2c20;color:#f2e8d2;border:1px solid var(--gold);border-radius:3px;
+  padding:10px 18px;font-size:14px;opacity:0;pointer-events:none;transition:all .25s;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#coach{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5;pointer-events:none;
+}
+#coach span{
+  background:rgba(30,24,17,.88);color:#f2e8d2;border:1px solid var(--gold);border-radius:3px;
+  padding:14px 26px;font-size:15px;letter-spacing:.12em;text-transform:uppercase;
+  animation:coach 2.6s ease forwards;
+}
+@keyframes coach{0%{opacity:0;transform:translateY(8px)}12%{opacity:1;transform:none}78%{opacity:1}100%{opacity:0}}
+/* ---------- panel ---------- */
+aside{
+  background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);
+  border-radius:3px;position:sticky;top:14px;
+  max-height:calc(100vh - 158px); /* clears the header at initial scroll */
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.panelScroll{overflow-y:auto;flex:1;min-height:0;scrollbar-gutter:stable;position:relative}
+aside.canScroll .actions{box-shadow:0 -10px 14px -10px rgba(43,38,32,.35)}
+aside.canScroll .panelScroll{mask-image:linear-gradient(180deg,#000 calc(100% - 26px),rgba(0,0,0,.25))}
+aside .head{padding:14px 22px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+aside .head h3{font-family:'GFS Didot',serif;font-weight:400;font-size:19px;letter-spacing:.1em}
+aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+#reset{
+  font-family:'Alegreya Sans',sans-serif;font-size:12px;letter-spacing:.08em;
+  background:none;border:none;color:var(--terra);cursor:pointer;text-decoration:underline;
+  text-underline-offset:3px;padding:2px;
+}
+#reset:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.section{padding:7px 22px 6px;border-top:1px solid var(--line)}
+.section .title{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.section .title output{font-family:'GFS Didot',serif;font-size:15px;color:var(--terra);letter-spacing:0}
+.section .cap{font-size:11.5px;color:#8d8172;margin:1px 0 2px}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:3px;background:linear-gradient(90deg,var(--terra) var(--fill,50%),var(--line) var(--fill,50%));
+  border-radius:2px;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;margin-top:-5.5px;
+  background:var(--panel);border:2px solid var(--terra);border-radius:1px;transform:rotate(45deg);
+  box-shadow:0 1px 4px rgba(43,38,32,.35);
+}
+input[type=range]::-moz-range-track{
+  height:3px;background:linear-gradient(90deg,var(--terra) var(--fill,50%),var(--line) var(--fill,50%));
+  border-radius:2px;
+}
+input[type=range]::-moz-range-thumb{
+  width:13px;height:13px;background:var(--panel);border:2px solid var(--terra);border-radius:1px;transform:rotate(45deg);
+  box-shadow:0 1px 4px rgba(43,38,32,.35);
+}
+input[type=range]:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:2px}
+.styles{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:5px}
+.styles button{
+  font-family:'Alegreya Sans',sans-serif;font-size:12.5px;font-weight:500;letter-spacing:.03em;
+  padding:6px 5px 6px;background:transparent;border:1px solid var(--line);border-radius:2px;
+  color:var(--ink-soft);cursor:pointer;transition:all .15s;
+}
+.styles button .sw{display:flex;height:7px;border-radius:1px;overflow:hidden;margin-bottom:4px}
+.styles button .sw i{flex:1}
+.styles button:hover{border-color:var(--terra)}
+.styles button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.styles button[aria-pressed="true"]{border-color:var(--terra);color:var(--ink);background:rgba(164,80,46,.07);box-shadow:inset 0 0 0 1px var(--terra)}
+.actions{padding:12px 22px 12px;border-top:1px solid var(--line);display:grid;gap:7px;
+  background:var(--panel);flex-shrink:0}
+.btn{padding:11px}
+.btnRow{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#styleBtns{grid-template-columns:repeat(4,1fr)}
+#styleBtns button{font-size:11.5px;padding:5px 3px}
+.btnRow .btn{padding:10px 6px;font-size:12.5px;letter-spacing:.1em}
+input[type=range]:disabled{opacity:.35;cursor:default}
+.section.dimmed .title,.section.dimmed .cap{opacity:.45}
+.btn{
+  font-family:'Alegreya Sans',sans-serif;font-size:14px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  padding:13px;border-radius:2px;border:none;cursor:pointer;transition:all .15s;
+}
+.btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.btn.primary{background:var(--terra);color:#f7efdd;box-shadow:0 6px 18px -6px rgba(164,80,46,.7)}
+.btn.primary:hover:not(:disabled){background:#8f4325;transform:translateY(-1px)}
+.btn:disabled{background:#d8cdb8;color:#a2957c;cursor:default;transform:none;box-shadow:none}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink-soft)}
+.btn.ghost:hover:not(:disabled){border-color:var(--ink-soft);color:var(--ink)}
+.btn.ghost:disabled{background:transparent;border-color:var(--line);color:#b8ac92}
+.export-note{font-size:12px;color:#8d8172;text-align:center;min-height:16px;margin-top:-4px}
+.byline{padding:10px 22px 18px;font-size:12px;color:#8d8172;line-height:1.5}
+@media (max-width:900px){
+  main{grid-template-columns:1fr}
+  aside{position:static}
+  header,main,.frame{padding-left:16px;padding-right:16px;margin-left:0;margin-right:0}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="psi">ΨΗΦΙΣ</span></h1>
+  <div class="sub">psēphis · the mosaic atelier — set any photograph in stone</div>
+</header>
+<div class="frame meander"></div>
+<main>
+  <div class="stageWrap">
+  <div id="stage">
+    <div id="drop">
+      <div id="dropBtn" role="button" tabindex="0" aria-label="Drop an image here or press Enter to browse">
+        <div class="glyph" aria-hidden="true">◈</div>
+        <h2>Lay a photograph on the workbench</h2>
+        <p><b>Drop an image here</b> or click to browse.<br>It will be cut into tesserae, row by row, the ancient way.</p>
+      </div>
+      <div id="samples"></div>
+      <p id="sampleNote" style="display:none;font-size:12px;color:#8f846a;margin-top:14px">Sample photographs appear when the atelier is served over http.</p>
+    </div>
+    <canvas id="canvas" role="img" aria-label="Mosaic rendering of your photograph"></canvas>
+    <div id="hint">Hold (or press C) to compare · click to zoom · Esc exits zoom</div>
+    <div id="coach"><span>Hold to compare with the photograph · click to zoom</span></div>
+    <div id="progress" aria-live="polite"><span id="ptext">Cutting tesserae…</span><div class="bar"><i id="pfill"></i></div></div>
+    <div id="toast" role="alert"></div>
+  </div>
+  </div>
+  <aside aria-label="Mosaic settings">
+    <div class="panelScroll">
+    <div class="head">
+      <div>
+        <h3>THE CUTTING TABLE</h3>
+        <p>Changes re-lay the mosaic instantly</p>
+      </div>
+      <button id="reset" title="Return every control to its default">Reset</button>
+    </div>
+    <div class="section">
+      <label class="title" for="c_size">Tessera size <output id="o_size" aria-live="polite">10</output></label>
+      <p class="cap">How large each stone is cut</p>
+      <input type="range" id="c_size" min="5" max="26" value="10" step="1" aria-label="Tessera size">
+    </div>
+    <div class="section">
+      <label class="title" for="c_gap">Grout gap <output id="o_gap" aria-live="polite">2.0</output></label>
+      <p class="cap">Mortar showing between stones</p>
+      <input type="range" id="c_gap" min="0.5" max="6" value="2" step="0.5" aria-label="Grout gap">
+    </div>
+    <div class="section">
+      <label class="title" for="c_pal">Palette stones <output id="o_pal" aria-live="polite">16</output></label>
+      <p class="cap">How many stone colors are used</p>
+      <input type="range" id="c_pal" min="6" max="28" value="16" step="1" aria-label="Number of palette stones">
+    </div>
+    <div class="section">
+      <label class="title" for="c_irr">Hand of the maker <output id="o_irr" aria-live="polite">55</output></label>
+      <p class="cap">Irregularity of each cut &amp; row</p>
+      <input type="range" id="c_irr" min="0" max="100" value="55" step="5" aria-label="Irregularity of cuts">
+    </div>
+    <div class="section">
+      <label class="title" for="c_age">Weathering <output id="o_age" aria-live="polite">10</output></label><!-- output text handled in JS: 0 shows "None" -->
+      <p class="cap">Centuries of loss — patches of bare mortar</p>
+      <input type="range" id="c_age" min="0" max="100" value="10" step="5" aria-label="Weathering amount">
+    </div>
+    <div class="section">
+      <span class="title" id="layTitle">Laying pattern</span>
+      <p class="cap">The <i>opus</i> — how rows travel across the panel</p>
+      <div class="styles" id="layBtns" role="group" aria-labelledby="layTitle"></div>
+    </div>
+    <div class="section">
+      <span class="title" id="styleTitle">Stone treatment</span>
+      <div class="styles" id="styleBtns" role="group" aria-labelledby="styleTitle"></div>
+    </div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="download" disabled>Download panel</button>
+      <p class="export-note" id="exportNote"></p>
+      <div class="btnRow">
+        <button class="btn ghost" id="recut" disabled>Re-cut stones</button>
+        <button class="btn ghost" id="newimg" disabled>New photo</button>
+      </div>
+    </div>
+  </aside>
+</main>
+<input type="file" id="file" accept="image/*" style="display:none">
+<script>
+"use strict";
+/* ============================================================
+   ΨΗΦΙΣ v2 — flow-field mosaic renderer
+   v2: contour outline pass, saliency-weighted palette,
+   edge-aware sampling, adaptive tessera size, course-coherent
+   stone runs, contiguous lacunae, live-preview UX model.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const canvas = $('canvas'), ctx = canvas.getContext('2d');
+const stage = $('stage'), drop = $('drop'), fileInp = $('file');
+const dlBtn = $('download'), newBtn = $('newimg'), recutBtn = $('recut');
+
+/* ---------- controls ---------- */
+const controls = {size:10, gap:2, pal:16, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const DEFAULTS = {size:10, gap:2, pal:16, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const bindings = [['size','c_size','o_size',v=>v],['gap','c_gap','o_gap',v=>v.toFixed(1)],
+  ['pal','c_pal','o_pal',v=>v],['irr','c_irr','o_irr',v=>v],['age','c_age','o_age',v=>v===0?'None':v]];
+for (const [key,cid,oid,fmt] of bindings){
+  const el=$(cid), out=$(oid);
+  const paint=()=>{const p=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty('--fill',p+'%');};
+  el.addEventListener('input',()=>{controls[key]=+el.value;out.textContent=fmt(+el.value);paint();scheduleRender();});
+  paint();
+}
+const LAYOUTS = [
+  {id:'vermiculatum', name:'Vermiculatum', cap:'fine, contour-hugging'},
+  {id:'musivum',      name:'Musivum',      cap:'flow fills the field'},
+  {id:'tessellatum',  name:'Tessellatum',  cap:'straight courses'},
+  {id:'regulatum',    name:'Regulatum',    cap:'strict grid'},
+];
+/* per-opus engine parameters */
+const LAY_CFG = {
+  vermiculatum:{falloff:3.2, waves:1,   outline:true,  adaptive:true,  jitter:1},
+  musivum:     {falloff:12,  waves:0.5, outline:true,  adaptive:true,  jitter:1},
+  tessellatum: {falloff:2.2, waves:0,   outline:true,  adaptive:false, jitter:0.8},
+  regulatum:   {falloff:0,   waves:0,   outline:false, adaptive:false, jitter:0.3},
+};
+/* single-select groups as proper radiogroups with roving tabindex */
+function makeRadioGroup(wrap, items, key, renderLabel){
+  wrap.setAttribute('role','radiogroup');
+  items.forEach((it,idx)=>{
+    const b=document.createElement('button');
+    b.innerHTML=renderLabel(it);
+    b.setAttribute('role','radio');
+    const sel=it.id===controls[key];
+    b.setAttribute('aria-checked', sel?'true':'false');
+    b.tabIndex = sel?0:-1;
+    b.onclick=()=>selectRadio(wrap,items,key,idx);
+    b.onkeydown=e=>{
+      const dirs={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1};
+      if(e.key in dirs){e.preventDefault();
+        const n=(idx+dirs[e.key]+items.length)%items.length;
+        selectRadio(wrap,items,key,n);wrap.children[n].focus();}
+    };
+    wrap.appendChild(b);
+  });
+}
+function selectRadio(wrap,items,key,idx){
+  controls[key]=items[idx].id;
+  [...wrap.children].forEach((x,i)=>{x.setAttribute('aria-checked',i===idx?'true':'false');x.tabIndex=i===idx?0:-1;});
+  if(key==='layout')syncDim();
+  scheduleRender();
+}
+const layWrap = $('layBtns');
+makeRadioGroup(layWrap, LAYOUTS, 'layout',
+  l=>`${l.name}<br><span style="font-size:11px;font-weight:400;color:#8d8172">${l.cap}</span>`);
+const STYLES = [
+  {id:'antique', name:'Antique',  sw:['#c8b89a','#a4502e','#4a7fae','#e8ddc4']},
+  {id:'marble',  name:'Marble',   sw:['#efe9dd','#b9b2a4','#6d675c','#2f2b25']},
+  {id:'smalti',  name:'Smalti',   sw:['#1d5f8a','#c33d1e','#d9a520','#1f7a4d']},
+  {id:'true',    name:'True',sw:['#888','#b77','#7a8','#679']},
+];
+const styleWrap = $('styleBtns');
+makeRadioGroup(styleWrap, STYLES, 'style',
+  s=>`<span class="sw" aria-hidden="true">${s.sw.map(c=>`<i style="background:${c}"></i>`).join('')}</span>${s.name}`);
+
+/* selected-state styling now keys off aria-checked */
+document.head.insertAdjacentHTML('beforeend',
+  '<style>.styles button[aria-checked="true"]{border-color:var(--terra);color:var(--ink);font-weight:700;background:rgba(164,80,46,.12);box-shadow:inset 3px 0 0 var(--terra), inset 0 0 0 1px var(--terra)}</style>');
+
+/* strict grid has no hand: dim the irregularity control under Regulatum */
+function syncDim(){
+  const strict=controls.layout==='regulatum';
+  const el=$('c_irr');el.disabled=strict;
+  el.closest('.section').classList.toggle('dimmed',strict);
+  el.closest('.section').querySelector('.cap').textContent=
+    strict?'A strict grid is cut by rule, not by hand':'Irregularity of each cut & row';
+}
+
+/* reset to defaults */
+$('reset').onclick=()=>{
+  Object.assign(controls,DEFAULTS);
+  for(const [key,cid,oid,fmt] of bindings){
+    const el=$(cid);el.value=DEFAULTS[key];
+    $(oid).textContent=fmt(DEFAULTS[key]);
+    el.style.setProperty('--fill',((el.value-el.min)/(el.max-el.min)*100)+'%');
+  }
+  [...layWrap.children].forEach((b,i)=>{b.setAttribute('aria-checked',LAYOUTS[i].id===DEFAULTS.layout?'true':'false');b.tabIndex=LAYOUTS[i].id===DEFAULTS.layout?0:-1;});
+  [...styleWrap.children].forEach((b,i)=>{b.setAttribute('aria-checked',STYLES[i].id===DEFAULTS.style?'true':'false');b.tabIndex=STYLES[i].id===DEFAULTS.style?0:-1;});
+  syncDim();
+  scheduleRender();
+};
+syncDim();
+
+/* short-viewport affordance: show a scrim when the panel body can scroll */
+const asideEl=document.querySelector('aside'), panelScroll=document.querySelector('.panelScroll');
+function syncScrollCue(){asideEl.classList.toggle('canScroll',panelScroll.scrollHeight>panelScroll.clientHeight+2);}
+new ResizeObserver(syncScrollCue).observe(panelScroll);
+window.addEventListener('resize',syncScrollCue);
+syncScrollCue();
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function toast(msg){
+  const t=$('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3600);
+}
+
+/* ---------- image loading ---------- */
+let srcImg=null;
+function loadFromDataURL(url){
+  const im=new Image();
+  im.onload=()=>{srcImg=im;drop.style.display='none';stage.classList.add('hasArt');
+    canvas.style.display='block';newBtn.disabled=false;recutBtn.disabled=false;
+    render();
+    if(window.innerWidth<900) setTimeout(()=>canvas.scrollIntoView({behavior:'smooth',block:'start'}),150);
+  };
+  im.onerror=()=>toast('That image could not be read — try a different JPG or PNG.');
+  im.src=url;
+}
+function loadFile(f){
+  if(!f)return;
+  if(!f.type.startsWith('image/')){toast("That file isn't an image — try a JPG or PNG.");return;}
+  const r=new FileReader();
+  r.onload=e=>loadFromDataURL(e.target.result);
+  r.onerror=()=>toast('Could not read that file.');
+  r.readAsDataURL(f);
+}
+const dropBtn=$('dropBtn');
+dropBtn.onclick=()=>fileInp.click();
+dropBtn.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fileInp.click();}};
+fileInp.onchange=()=>loadFile(fileInp.files[0]);
+['dragover','dragenter'].forEach(ev=>stage.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>stage.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+stage.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+newBtn.onclick=()=>fileInp.click();
+
+/* sample thumbnails (only when served over http) */
+const SAMPLES=['samples/DSC_2464.jpg','samples/DSC_2824.jpg','samples/DSC_2599.jpg','samples/DSC_2714.jpg'];
+if(location.protocol.startsWith('http')){
+  const wrap=$('samples');
+  SAMPLES.forEach(src=>{
+    const t=new Image();t.src=src;t.title='Use this sample';t.alt='Sample photograph';t.tabIndex=0;
+    t.setAttribute('role','button');
+    t.onclick=e=>{e.stopPropagation();sampleToDataURL(src);};
+    t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();sampleToDataURL(src);}};
+    t.onerror=()=>t.remove();
+    wrap.appendChild(t);
+  });
+} else {
+  $('sampleNote').style.display='block';
+}
+function sampleToDataURL(src){
+  const im=new Image();
+  im.onload=()=>{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;
+    c.getContext('2d').drawImage(im,0,0);loadFromDataURL(c.toDataURL('image/jpeg',0.92));};
+  im.onerror=()=>toast('Sample could not be loaded.');
+  im.src=src;
+}
+
+/* ---------- compare (hold or C key) & zoom (click, anchored; Esc exits) ---------- */
+let resultC=null, srcPreviewC=null, holdActive=false, downAt=0, holdTimer=null;
+function showOriginal(){if(srcPreviewC&&!holdActive){holdActive=true;ctx.drawImage(srcPreviewC,0,0,canvas.width,canvas.height);}}
+function showResult(){if(holdActive&&resultC){ctx.drawImage(resultC,0,0);holdActive=false;}}
+canvas.addEventListener('pointerdown',e=>{
+  if(!resultC||!srcPreviewC)return;
+  e.preventDefault();
+  downAt=Date.now();
+  clearTimeout(holdTimer);
+  holdTimer=setTimeout(showOriginal,180);
+});
+function releaseHold(){clearTimeout(holdTimer);showResult();}
+canvas.addEventListener('pointerup',e=>{
+  const wasHold=holdActive;
+  releaseHold();
+  if(!wasHold && Date.now()-downAt<250) toggleZoom(e);
+});
+canvas.addEventListener('pointerleave',releaseHold);
+window.addEventListener('keydown',e=>{
+  if(e.key==='c'||e.key==='C'){if(!e.repeat)showOriginal();}
+  if(e.key==='Escape'&&stage.classList.contains('zoomed'))stage.classList.remove('zoomed');
+});
+window.addEventListener('keyup',e=>{if(e.key==='c'||e.key==='C')showResult();});
+function toggleZoom(e){
+  const zoomIn=!stage.classList.contains('zoomed');
+  if(!zoomIn){stage.classList.remove('zoomed');return;}
+  /* anchor: keep the clicked image point centered after zoom */
+  const r=canvas.getBoundingClientRect();
+  const fx=(e.clientX-r.left)/r.width, fy=(e.clientY-r.top)/r.height;
+  stage.classList.add('zoomed');
+  requestAnimationFrame(()=>{
+    stage.scrollLeft=fx*canvas.width-stage.clientWidth/2;
+    stage.scrollTop =fy*canvas.height-stage.clientHeight/2;
+  });
+}
+
+/* ---------- deterministic RNG (stable re-renders) ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+let seed=1234567;
+recutBtn.onclick=()=>{seed=(Math.random()*1e9)|0;toast(`Cut anew — seed ${seed}`);render();};
+
+/* ---------- render orchestration: fast preview while adjusting, full-res on idle ---------- */
+let renderToken=0, renderTimer=null, fullTimer=null, coachShown=false, lastTessCount=0;
+const FULL_DIM=1500, PREVIEW_DIM=760;
+function scheduleRender(){
+  if(!srcImg) return;
+  clearTimeout(renderTimer); clearTimeout(fullTimer);
+  renderTimer=setTimeout(()=>render(PREVIEW_DIM,true),180);
+}
+dlBtn.onclick=()=>{
+  canvas.toBlob(blob=>{
+    if(!blob){toast('Export failed — try again.');return;}
+    const a=document.createElement('a');
+    a.download=`psephis-${controls.layout}-${controls.style}-s${seed}.png`;
+    a.href=URL.createObjectURL(blob);a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  },'image/png');
+};
+
+async function render(maxdim=FULL_DIM, thenFull=false){
+  if(!srcImg) return;
+  const token=++renderToken;
+  clearTimeout(fullTimer);
+  window.__renderDone=false;
+  canvas.classList.add('working');
+  $('progress').style.display='flex'; $('hint').style.display='none';
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  try{ await renderMosaic(token,maxdim); }
+  catch(err){ console.error(err); toast('Something went wrong while laying the mosaic.'); }
+  finally{
+    if(token===renderToken){
+      canvas.classList.remove('working');
+      $('progress').style.display='none';
+      if(resultC){
+        dlBtn.disabled=false;
+        $('exportNote').textContent=`PNG · ${canvas.width} × ${canvas.height} px · ${lastTessCount.toLocaleString()} tesserae`;
+        const hint=$('hint');hint.style.display='block';hint.classList.remove('fade');
+        clearTimeout(hint._t);hint._t=setTimeout(()=>hint.classList.add('fade'),4500);
+        if(!coachShown){coachShown=true;$('coach').style.display='flex';
+          setTimeout(()=>$('coach').style.display='none',2700);}
+      }
+      window.__renderDone = !thenFull;
+      if(thenFull) fullTimer=setTimeout(()=>render(FULL_DIM,false),240);
+    }
+  }
+}
+function progress(f,label){ $('pfill').style.width=(f*100).toFixed(1)+'%'; if(label)$('ptext').textContent=label; }
+const tick=()=>new Promise(r=>setTimeout(r,0));
+
+/* ============================================================
+   THE ENGINE
+   ============================================================ */
+async function renderMosaic(token,maxdim){
+  const rand=mulberry32(seed);
+  const AGE=controls.age/100;
+  const CFG=LAY_CFG[controls.layout]||LAY_CFG.vermiculatum;
+  const IRR=(controls.irr/100)*CFG.jitter;
+  console.log('[psephis] start', controls.layout, controls.style, maxdim);
+
+  /* --- output geometry (tessera size scales with resolution so
+         preview and full render show the same design) --- */
+  const scl=Math.min(1, maxdim/Math.max(srcImg.naturalWidth,srcImg.naturalHeight));
+  const W=Math.round(srcImg.naturalWidth*scl), H=Math.round(srcImg.naturalHeight*scl);
+  const resScale=Math.max(W,H)/1500;
+  const T=Math.max(3.2,controls.size*resScale), GAP=Math.max(0.4,controls.gap*resScale);
+  canvas.width=W; canvas.height=H;
+
+  /* --- source pixels --- */
+  const srcC=document.createElement('canvas'); srcC.width=W; srcC.height=H;
+  const sctx=srcC.getContext('2d',{willReadFrequently:true});
+  sctx.drawImage(srcImg,0,0,W,H);
+  const img=sctx.getImageData(0,0,W,H).data;
+  srcPreviewC=srcC;
+  const px=(x,y)=>{x=x<0?0:x>=W?W-1:x|0; y=y<0?0:y>=H?H-1:y|0; return (y*W+x)*4;};
+  const lumAt=i=>img[i]*0.299+img[i+1]*0.587+img[i+2]*0.114;
+
+  progress(0.04,'Reading the stone…'); await tick(); if(token!==renderToken)return;
+
+  /* --- analysis at reduced resolution --- */
+  const A=4;
+  const aw=Math.ceil(W/A), ah=Math.ceil(H/A);
+  const gray=new Float32Array(aw*ah);
+  for(let y=0;y<ah;y++)for(let x=0;x<aw;x++){
+    const i=px(x*A,y*A);
+    gray[y*aw+x]=(img[i]*0.299+img[i+1]*0.587+img[i+2]*0.114)/255;
+  }
+  boxBlur(gray,aw,ah,1);
+
+  const gx=new Float32Array(aw*ah), gy=new Float32Array(aw*ah), mag=new Float32Array(aw*ah);
+  for(let y=1;y<ah-1;y++)for(let x=1;x<aw-1;x++){
+    const i=y*aw+x;
+    const a=gray[i-aw-1],b=gray[i-aw],c=gray[i-aw+1],
+          d=gray[i-1],        f=gray[i+1],
+          g=gray[i+aw-1],h=gray[i+aw],k=gray[i+aw+1];
+    gx[i]=(c+2*f+k)-(a+2*d+g);
+    gy[i]=(g+2*h+k)-(a+2*b+c);
+    mag[i]=Math.hypot(gx[i],gy[i]);
+  }
+
+  const jxx=new Float32Array(aw*ah), jxy=new Float32Array(aw*ah), jyy=new Float32Array(aw*ah);
+  for(let i=0;i<aw*ah;i++){jxx[i]=gx[i]*gx[i];jxy[i]=gx[i]*gy[i];jyy[i]=gy[i]*gy[i];}
+  const R=Math.max(2,Math.round(T/A*1.6));
+  /* wide-blur copy FIRST: the background field follows the image's own
+     large-scale structure (rows fan around cloud masses, not sinusoids) */
+  const bxx=Float32Array.from(jxx), bxy=Float32Array.from(jxy), byy=Float32Array.from(jyy);
+  for(const arr of [bxx,bxy,byy]) boxBlur(arr,aw,ah,R*4), boxBlur(arr,aw,ah,R*4);
+  for(const arr of [jxx,jxy,jyy]) boxBlur(arr,aw,ah,R), boxBlur(arr,aw,ah,R);
+
+  const magB=Float32Array.from(mag); boxBlur(magB,aw,ah,2);
+  const thr=percentile(magB,0.86);
+  const ridgeThr=percentile(magB,0.955);          // strongest edges -> outline rows
+  const dist=new Float32Array(aw*ah).fill(1e5);
+  for(let i=0;i<aw*ah;i++) if(magB[i]>thr) dist[i]=0;
+  chamfer(dist,aw,ah);
+
+  progress(0.12,'Finding the flow…'); await tick(); if(token!==renderToken)return;
+
+  /* direction field as doubled-angle vector */
+  const c2=new Float32Array(aw*ah), s2=new Float32Array(aw*ah);
+  const falloff=(T/A)*CFG.falloff;
+  for(let y=0;y<ah;y++)for(let x=0;x<aw;x++){
+    const i=y*aw+x;
+    const d=jxx[i]-jyy[i], tr=jxx[i]+jyy[i];
+    const thN=0.5*Math.atan2(2*jxy[i],d);
+    const thT=thN+Math.PI/2;
+    const coh=tr>1e-7 ? Math.hypot(d,2*jxy[i])/tr : 0;
+    /* background flow: image's own large-scale tangent where it is
+       coherent, easing to gentle waves where the image is featureless */
+    const bd=bxx[i]-byy[i], btr=bxx[i]+byy[i];
+    const thBT=0.5*Math.atan2(2*bxy[i],bd)+Math.PI/2;
+    const bcoh=btr>1e-8 ? Math.hypot(bd,2*bxy[i])/btr : 0;
+    const wImg=Math.min(1,bcoh*2.2)*(CFG.waves?1:0);
+    const thWave=(Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3)*CFG.waves;
+    const cB=wImg*Math.cos(2*thBT)+(1-wImg)*Math.cos(2*thWave);
+    const sB=wImg*Math.sin(2*thBT)+(1-wImg)*Math.sin(2*thWave);
+    const w=falloff>0 ? Math.exp(-dist[i]/falloff)*Math.min(1,coh*1.6) : 0;
+    c2[i]=w*Math.cos(2*thT)+(1-w)*cB;
+    s2[i]=w*Math.sin(2*thT)+(1-w)*sB;
+  }
+  boxBlur(c2,aw,ah,2); boxBlur(s2,aw,ah,2);
+  const angleAt=(x,y)=>{
+    const ax=Math.min(aw-1.001,Math.max(0,x/A)), ay=Math.min(ah-1.001,Math.max(0,y/A));
+    const x0=ax|0,y0=ay|0,fx=ax-x0,fy=ay-y0,i=y0*aw+x0;
+    const cc=lerp(lerp(c2[i],c2[i+1],fx),lerp(c2[i+aw],c2[i+aw+1],fx),fy);
+    const ss=lerp(lerp(s2[i],s2[i+1],fx),lerp(s2[i+aw],s2[i+aw+1],fx),fy);
+    return 0.5*Math.atan2(ss,cc);
+  };
+  const edgeDistAt=(x,y)=>{
+    const ax=Math.min(aw-1,Math.max(0,x/A|0)), ay=Math.min(ah-1,Math.max(0,y/A|0));
+    return dist[ay*aw+ax]*A;
+  };
+
+  /* --- palette: saliency-weighted k-means ---
+     subject regions (near edges) contribute extra samples so a small
+     figure still earns its own palette stones */
+  progress(0.2,'Sorting the stones…'); await tick(); if(token!==renderToken)return;
+  const K=controls.pal;
+  const samples=[], salSamples=[];
+  const step=Math.max(2,Math.round(Math.sqrt(W*H/6000)));
+  for(let y=0;y<H;y+=step)for(let x=0;x<W;x+=step){
+    const i=px(x,y);
+    const s=[img[i],img[i+1],img[i+2]];
+    samples.push(s);
+    const m=magB[Math.min(ah-1,y/A|0)*aw+Math.min(aw-1,x/A|0)];
+    if(m>thr*0.6){samples.push(s);salSamples.push(s);}
+  }
+  /* global palette + a small SUBJECT palette cut only from detailed
+     regions, so a small figure owns its stones by construction */
+  const KSUB=Math.min(6,Math.max(3,Math.round(K*0.3)));
+  let rawCents=kmeans(samples,Math.max(4,K-KSUB),rand);
+  if(salSamples.length>60){
+    const sub=kmeans(salSamples,KSUB,rand);
+    for(const c of sub){
+      let dmin=1e12;
+      for(const g of rawCents){const d=(c[0]-g[0])**2+(c[1]-g[1])**2+(c[2]-g[2])**2;if(d<dmin)dmin=d;}
+      if(dmin>24*24)rawCents.push(c);
+    }
+  }
+  /* per-stone saliency: share of its members that came from detailed regions */
+  const salHits=new Float32Array(rawCents.length), allHits=new Float32Array(rawCents.length);
+  const nearestRaw=p=>{let bi=0,bd=1e12;
+    for(let c=0;c<rawCents.length;c++){const d=(p[0]-rawCents[c][0])**2+(p[1]-rawCents[c][1])**2+(p[2]-rawCents[c][2])**2;
+      if(d<bd){bd=d;bi=c;}}return bi;};
+  for(const p of samples)allHits[nearestRaw(p)]++;
+  for(const p of salSamples)salHits[nearestRaw(p)]++;
+  const cents=rawCents.map((c,i)=>{
+    const sal=allHits[i]>0?Math.min(1,(salHits[i]/allHits[i])*2):0;
+    return treatStone(c,controls.style,sal);
+  });
+  /* index of darkest stone, for outline rows */
+  let darkIdx=0,darkL=1e9;
+  cents.forEach((c,i)=>{const l=c[0]*0.299+c[1]*0.587+c[2]*0.114;if(l<darkL){darkL=l;darkIdx=i;}});
+
+  /* --- sky mask: top-connected, bright, blue-or-neutral region ---
+     a mosaicist sorts trays before laying: inside the sky only blue and
+     white stones may be set, so no ochre course ever crosses the heavens */
+  const skyMask=new Uint8Array(aw*ah);
+  {
+    const cand=new Uint8Array(aw*ah);
+    for(let y=0;y<ah;y++)for(let x=0;x<aw;x++){
+      const i=px(x*A,y*A);
+      const r=img[i],g=img[i+1],b=img[i+2];
+      const l=r*0.299+g*0.587+b*0.114;
+      const chroma=Math.max(r,g,b)-Math.min(r,g,b);
+      if(l>96 && b>=r-6 && b>=g-10 && (b>r+4||chroma<40)) cand[y*aw+x]=1;
+    }
+    /* flood from the top row through candidate cells */
+    const q=[];
+    for(let x=0;x<aw;x++)if(cand[x]){skyMask[x]=1;q.push(x);}
+    while(q.length){
+      const i=q.pop(), x=i%aw, y=(i/aw)|0;
+      for(const [nx,ny] of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]){
+        if(nx<0||ny<0||nx>=aw||ny>=ah)continue;
+        const j=ny*aw+nx;
+        if(cand[j]&&!skyMask[j]){skyMask[j]=1;q.push(j);}
+      }
+    }
+    /* majority smoothing: swallow pinhole gaps so no lone warm tessera
+       floats in a blue field (salt-and-pepper flecks) */
+    for(let pass=0;pass<2;pass++){
+      const prev=Uint8Array.from(skyMask);
+      for(let y=1;y<ah-1;y++)for(let x=1;x<aw-1;x++){
+        const i=y*aw+x;
+        let n=prev[i-1]+prev[i+1]+prev[i-aw]+prev[i+aw]
+             +prev[i-aw-1]+prev[i-aw+1]+prev[i+aw-1]+prev[i+aw+1];
+        if(n>=6)skyMask[i]=1; else if(n<=2)skyMask[i]=0;
+      }
+    }
+  }
+  const inSky=(x,y)=>skyMask[Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0))]===1;
+  /* stone trays: which stones may be laid in the sky */
+  const skyStone=cents.map(c=>{
+    const l=c[0]*0.299+c[1]*0.587+c[2]*0.114;
+    const chroma=Math.max(c[0],c[1],c[2])-Math.min(c[0],c[1],c[2]);
+    const blueDom=c[2]>c[0]+4&&c[2]>=c[1]-4;
+    const neutralLight=l>150&&chroma<30;
+    return blueDom||neutralLight;
+  });
+  const anySkyStone=skyStone.some(Boolean);
+
+  /* mean palette luminance — decides which way bare mortar must contrast */
+  const paletteLum=cents.reduce((s,c)=>s+c[0]*0.299+c[1]*0.587+c[2]*0.114,0)/cents.length;
+
+  /* --- grout ground --- */
+  paintGrout(ctx,W,H,controls.style,rand,paletteLum);
+
+  /* ============================================================
+     placement machinery (shared by outline + field passes)
+     ============================================================ */
+  const SEPF=T+GAP;                              // nominal field separation
+  const cell=SEPF*0.9, gw=Math.ceil(W/cell), gh=Math.ceil(H/cell);
+  const occ=new Array(gw*gh).fill(null).map(()=>[]);
+  function free(x,y,sep){
+    const cx=x/cell|0, cy=y/cell|0;
+    for(let j=Math.max(0,cy-2);j<=Math.min(gh-1,cy+2);j++)
+      for(let i=Math.max(0,cx-2);i<=Math.min(gw-1,cx+2);i++)
+        for(const p of occ[j*gw+i]){
+          const dx=p[0]-x,dy=p[1]-y,md=(sep+p[2])*0.5*0.92;
+          if(dx*dx+dy*dy<md*md)return false;}
+    return true;
+  }
+  function occupy(x,y,sep){occ[(y/cell|0)*gw+(x/cell|0)].push([x,y,sep]);}
+
+  /* adaptive tessera size: fine stones near contours (vermiculatum).
+     Near-contour size has an absolute ceiling so a large field size can
+     never starve the subject of detail — emblemata are always cut fine */
+  const nearSz=Math.min(T*0.6, 5.5*resScale+T*0.18);
+  const sizeAt=CFG.adaptive ? (x,y)=>{
+    const d=Math.min(1, edgeDistAt(x,y)/(3*T));
+    return nearSz+(T-nearSz)*d;
+  } : ()=>T;
+
+  /* edge-aware color sampling: median-side, not mean-across-boundary */
+  const taps=new Array(5);
+  function avgColorAt(x,y,sz){
+    const o=sz*0.30;
+    const pts=[[x,y],[x-o,y-o],[x+o,y-o],[x-o,y+o],[x+o,y+o]];
+    for(let k=0;k<5;k++){const i=px(pts[k][0],pts[k][1]);taps[k]=[img[i],img[i+1],img[i+2],lumAt(i)];}
+    taps.sort((a,b)=>a[3]-b[3]);
+    const med=taps[2];
+    let r=0,g=0,b=0,n=0;
+    for(const t of taps){if(Math.abs(t[3]-med[3])<34){r+=t[0];g+=t[1];b+=t[2];n++;}}
+    return [r/n,g/n,b/n];
+  }
+  function nearestStone(c,prevIdx,eDist,sky){
+    const pixBlue=c[2]>c[1]&&c[2]>c[0];
+    let bi=-1,bd=1e9;
+    for(let k=0;k<cents.length;k++){
+      if(sky&&anySkyStone&&!skyStone[k])continue;      // sky tray only
+      const s=cents[k];
+      const dr=c[0]-s[0],dg=c[1]-s[1],db=c[2]-s[2];
+      let dd=dr*dr*0.6+dg*dg*0.9+db*db*0.5;
+      /* in the sky, a blue-leaning pixel prefers chromatic blue stones
+         over neutral whites — closes the washed-out gap to the reference */
+      if(sky&&pixBlue){
+        const chroma=Math.max(s[0],s[1],s[2])-Math.min(s[0],s[1],s[2]);
+        if(chroma<30)dd*=1.35;
+      }
+      if(dd<bd){bd=dd;bi=k;}}
+    if(bi<0)bi=0;
+    /* course coherence in the open field only — near a contour every stone
+       must tell the truth, or rows drag background through the subject */
+    if(prevIdx>=0&&prevIdx!==bi&&!(sky&&anySkyStone&&!skyStone[prevIdx])){
+      const gate=Math.min(1,(eDist==null?1e4:eDist)/(2*T));
+      if(gate>0.15){
+        const s=cents[prevIdx];
+        const dr=c[0]-s[0],dg=c[1]-s[1],db=c[2]-s[2],dd=dr*dr*0.6+dg*dg*0.9+db*db*0.5;
+        const maxTol=controls.style==='smalti'?0.9:0.35;
+        if(dd<bd*(1+maxTol*gate))bi=prevIdx;
+      }
+    }
+    return bi;
+  }
+
+  /* contiguous lacunae with ragged, multi-tessera bites (two octaves) */
+  const missNoise=makeValueNoise(rand, W, H, 120);
+  const missNoise2=makeValueNoise(rand, W, H, 34);
+  const missing=(x,y)=>AGE>0 && (missNoise(x,y)*0.72+missNoise2(x,y)*0.28)<AGE*0.30;
+
+  const tiles=[];
+  let placedCount=0;
+
+  /* place a tile; returns stone idx or -2 if rejected */
+  function placeTile(x,y,th,sz,forceIdx,prevIdx){
+    if(!(x>=sz*0.3&&y>=sz*0.3&&x<=W-sz*0.3&&y<=H-sz*0.3)) return -2;  // also rejects NaN
+    if(!free(x,y,sz+GAP)) return -2;
+    occupy(x,y,sz+GAP);
+    placedCount++;
+    if(missing(x,y)){tiles.push([x,y,th,-1,sz]);return -3;}
+    const idx=forceIdx!=null?forceIdx:nearestStone(avgColorAt(x,y,sz),prevIdx,edgeDistAt(x,y),inSky(x,y));
+    tiles.push([x,y,th,idx,sz]);
+    return idx;
+  }
+
+  /* ============================================================
+     PASS 1 — outline rows along the strongest contours
+     (the reference's crisp dark figure boundary)
+     ============================================================ */
+  progress(0.26,'Tracing the figures…'); await tick(); if(token!==renderToken)return;
+  console.log('[psephis] outline pass');
+  const ridge=[];
+  if(!CFG.outline) ridge.length=0; else {
+  for(let y=1;y<ah-1;y++)for(let x=1;x<aw-1;x++){
+    const i=y*aw+x;
+    if(magB[i]>ridgeThr)ridge.push([x*A, y*A, magB[i]]);
+    /* the sky/ground meeting line is always an outline course, even when
+       the photographic gradient there is soft — keeps the horizon crisp */
+    else if(skyMask[i]!==skyMask[i+aw])ridge.push([x*A, y*A, ridgeThr*1.5]);
+  }
+  ridge.sort((a,b)=>b[2]-a[2]);
+  }
+  const outT=T*0.74, outSep=outT+GAP*0.8;
+  function outlineColor(x,y,th){
+    /* darker side of the boundary, darkened further — classical outline.
+       Inside the sky the outline must still come from the sky tray, or
+       cloud borders read as dirt streaks */
+    const nx=-Math.sin(th),ny=Math.cos(th),off=outT*0.9;
+    const x1=x+nx*off,y1=y+ny*off,x2=x-nx*off,y2=y-ny*off;
+    const i1=px(x1,y1), i2=px(x2,y2);
+    const darkFirst=lumAt(i1)<lumAt(i2);
+    const c=darkFirst?[img[i1],img[i1+1],img[i1+2]]:[img[i2],img[i2+1],img[i2+2]];
+    const bothSky=inSky(x1,y1)&&inSky(x2,y2);
+    return nearestStone([c[0]*0.72,c[1]*0.72,c[2]*0.72],-1,0,bothSky);
+  }
+  for(const [sx,sy] of ridge){
+    if(!free(sx,sy,outSep))continue;
+    let th=angleAt(sx,sy);
+    if(placeTile(sx,sy,th,outT,outlineColor(sx,sy,th))===-2)continue;
+    for(const sgn of [1,-1]){
+      let x=sx,y=sy,dx=Math.cos(th)*sgn,dy=Math.sin(th)*sgn,fails=0;
+      for(let n=0;n<300;n++){
+        let a=angleAt(x+dx*outSep*0.5,y+dy*outSep*0.5);
+        let vx=Math.cos(a),vy=Math.sin(a);
+        if(vx*dx+vy*dy<0){vx=-vx;vy=-vy;}
+        x+=vx*outSep;y+=vy*outSep;dx=vx;dy=vy;
+        if(x<0||y<0||x>W||y>H)break;
+        if(edgeDistAt(x,y)>T*0.9)break;          // left the contour
+        const a2=angleAt(x,y);
+        if(placeTile(x,y,a2,outT,outlineColor(x,y,a2))!==-2)fails=0;
+        else if(++fails>1)break;
+      }
+    }
+  }
+
+  /* ============================================================
+     PASS 2 — field fill, streamline rows (Jobard–Léfer style)
+     ============================================================ */
+  progress(0.34,'Laying the field…'); await tick(); if(token!==renderToken)return;
+  console.log('[psephis] field pass, outline tiles:', tiles.length);
+  const seeds=[];
+  for(let y=0;y<ah;y+=2)for(let x=0;x<aw;x+=2)
+    seeds.push([x*A+A, y*A+A, magB[y*aw+x]]);
+  seeds.sort((a,b)=>b[2]-a[2]);
+  const stack=[];
+
+  function trace(sx,sy){
+    const sz0=sizeAt(sx,sy);
+    if(!free(sx,sy,sz0+GAP))return;
+    let th=angleAt(sx,sy);
+    let idx=placeTile(sx,sy,th,sz0,null,-1);
+    if(idx===-2)return;
+    spawn(sx,sy,th,sz0);
+    for(const sgn of [1,-1]){
+      let x=sx,y=sy,dx=Math.cos(th)*sgn,dy=Math.sin(th)*sgn,fails=0,prev=idx,run=0;
+      for(let n=0;n<400;n++){
+        const sz=sizeAt(x,y), sep=sz+GAP;
+        let a=angleAt(x+dx*sep*0.5,y+dy*sep*0.5);
+        let vx=Math.cos(a),vy=Math.sin(a);
+        if(vx*dx+vy*dy<0){vx=-vx;vy=-vy;}
+        x+=vx*sep;y+=vy*sep;dx=vx;dy=vy;
+        if(x<0||y<0||x>W||y>H)break;
+        const a2=angleAt(x,y), sz2=sizeAt(x,y);
+        /* cap same-stone coherence runs so off-color stones scatter
+           instead of queueing along a visible streamline */
+        const r=placeTile(x,y,a2,sz2,null,run>=3?-1:prev);
+        if(r!==-2){
+          if(r>=0){run=(r===prev)?run+1:0;prev=r;}
+          spawn(x,y,a2,sz2);fails=0;
+        }
+        else if(++fails>1)break;
+      }
+    }
+  }
+  function spawn(x,y,th,sz){
+    const s=sz+GAP;
+    const nx=-Math.sin(th)*s,ny=Math.cos(th)*s;
+    stack.push([x+nx,y+ny],[x-nx,y-ny]);
+  }
+
+  let si=0, iters=0;const totalEst=(W*H)/(SEPF*SEPF)*0.9;
+  const MAXITER=1e6;
+  while(si<seeds.length && iters<MAXITER){
+    iters++;
+    if(stack.length){const s=stack.pop();trace(s[0],s[1]);}
+    else{const s=seeds[si++];trace(s[0],s[1]);}
+    if(iters%20000===0){
+      console.log('[psephis] field iter',iters,'seed',si,'stack',stack.length,'placed',placedCount);
+      progress(0.34+0.42*Math.min(1,placedCount/totalEst),'Laying the field…');
+      await tick(); if(token!==renderToken)return;
+    }
+  }
+  while(stack.length && iters<MAXITER){iters++;const s=stack.pop();trace(s[0],s[1]);}
+  console.log('[psephis] field done, iters',iters);
+
+  /* ============================================================
+     draw tiles: irregular quads + bevel light; lacunae as recess
+     ============================================================ */
+  progress(0.78,'Setting & polishing…'); await tick(); if(token!==renderToken)return;
+  console.log('[psephis] draw pass, tiles:', tiles.length);
+  const LX=-0.707,LY=-0.707;
+  let drawn=0, laid=0;
+  for(const [x,y,th0,idx,sz] of tiles){
+    if(idx===-1){
+      /* lost stone: bare mortar must contrast against the stones — raw lime
+         reads LIGHT against dark palettes, shadowed against light ones */
+      if(rand()<0.55){
+        ctx.fillStyle=paletteLum<138?'rgba(226,214,186,0.16)':'rgba(60,45,25,0.07)';
+        ctx.beginPath();ctx.arc(x+(rand()-0.5)*sz,y+(rand()-0.5)*sz,sz*(0.5+rand()*0.5),0,7);ctx.fill();
+      }
+      continue;
+    }
+    const col=cents[idx];
+    const th=th0+(rand()-0.5)*IRR*0.35;
+    const co=Math.cos(th),sn=Math.sin(th);
+    const half=sz/2, jit=IRR*sz*0.16;
+    const pts=[];
+    const base=[[-half,-half],[half,-half],[half,half],[-half,half]];
+    for(const [bx,by] of base){
+      const jx=bx+(rand()-0.5)*jit, jy=by+(rand()-0.5)*jit;
+      pts.push([x+jx*co-jy*sn, y+jx*sn+jy*co]);
+    }
+    const v=1+(rand()-0.5)*0.13;
+    const r=clamp(col[0]*v),g=clamp(col[1]*v),b=clamp(col[2]*v);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0],pts[0][1]);
+    for(let k=1;k<4;k++)ctx.lineTo(pts[k][0],pts[k][1]);
+    ctx.closePath();
+    ctx.fillStyle=`rgb(${r|0},${g|0},${b|0})`;
+    ctx.fill();
+    for(let k=0;k<4;k++){
+      const p1=pts[k],p2=pts[(k+1)%4];
+      const nx=(p2[1]-p1[1]),ny=-(p2[0]-p1[0]);
+      const nl=Math.hypot(nx,ny)||1;
+      const lit=(nx/nl)*LX+(ny/nl)*LY;
+      ctx.beginPath();ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);
+      ctx.strokeStyle=lit>0?'rgba(255,252,235,0.28)':'rgba(20,12,5,0.22)';
+      ctx.lineWidth=Math.max(0.6,sz*0.05);
+      ctx.stroke();
+    }
+    laid++;
+    if(++drawn%3000===0){progress(0.78+0.18*drawn/tiles.length);await tick();if(token!==renderToken)return;}
+  }
+
+  grain(ctx,W,H,0.05+AGE*0.05,rand);
+  vignette(ctx,W,H,0.16+AGE*0.08);
+
+  /* snapshot for hold-to-compare */
+  resultC=document.createElement('canvas');resultC.width=W;resultC.height=H;
+  resultC.getContext('2d').drawImage(canvas,0,0);
+
+  lastTessCount=laid;
+  console.log('[psephis] done,', laid, 'tesserae');
+  progress(1);
+}
+
+/* ============================================================
+   helpers
+   ============================================================ */
+function lerp(a,b,t){return a+(b-a)*t}
+function clamp(v){return v<0?0:v>255?255:v}
+function boxBlur(a,w,h,r){
+  if(r<1)return;
+  const tmp=new Float32Array(a.length);
+  for(let y=0;y<h;y++){let s=0;const row=y*w;
+    for(let x=-r;x<=r;x++)s+=a[row+Math.min(w-1,Math.max(0,x))];
+    for(let x=0;x<w;x++){tmp[row+x]=s/(2*r+1);
+      s+=a[row+Math.min(w-1,x+r+1)]-a[row+Math.max(0,x-r)];}}
+  for(let x=0;x<w;x++){let s=0;
+    for(let y=-r;y<=r;y++)s+=tmp[Math.min(h-1,Math.max(0,y))*w+x];
+    for(let y=0;y<h;y++){a[y*w+x]=s/(2*r+1);
+      s+=tmp[Math.min(h-1,y+r+1)*w+x]-tmp[Math.max(0,y-r)*w+x];}}
+}
+function percentile(arr,p){
+  const s=Float32Array.from(arr).sort();return s[Math.min(s.length-1,(s.length*p)|0)];
+}
+function chamfer(d,w,h){
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;
+    if(x>0)d[i]=Math.min(d[i],d[i-1]+1);
+    if(y>0)d[i]=Math.min(d[i],d[i-w]+1);
+    if(x>0&&y>0)d[i]=Math.min(d[i],d[i-w-1]+1.414);
+    if(x<w-1&&y>0)d[i]=Math.min(d[i],d[i-w+1]+1.414);}
+  for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;
+    if(x<w-1)d[i]=Math.min(d[i],d[i+1]+1);
+    if(y<h-1)d[i]=Math.min(d[i],d[i+w]+1);
+    if(x<w-1&&y<h-1)d[i]=Math.min(d[i],d[i+w+1]+1.414);
+    if(x>0&&y<h-1)d[i]=Math.min(d[i],d[i+w-1]+1.414);}
+}
+function kmeans(pts,k,rand){
+  const cents=[pts[(rand()*pts.length)|0].slice()];
+  while(cents.length<k){
+    let best=null,bd=-1;
+    for(let t=0;t<24;t++){
+      const p=pts[(rand()*pts.length)|0];
+      let dmin=1e12;
+      for(const c of cents){const d=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2;if(d<dmin)dmin=d;}
+      if(dmin>bd){bd=dmin;best=p;}
+    }
+    cents.push(best.slice());
+  }
+  for(let it=0;it<10;it++){
+    const sum=cents.map(()=>[0,0,0,0]);
+    for(const p of pts){
+      let bi=0,bd=1e12;
+      for(let c=0;c<k;c++){const d=(p[0]-cents[c][0])**2+(p[1]-cents[c][1])**2+(p[2]-cents[c][2])**2;
+        if(d<bd){bd=d;bi=c;}}
+      const s=sum[bi];s[0]+=p[0];s[1]+=p[1];s[2]+=p[2];s[3]++;
+    }
+    for(let c=0;c<k;c++)if(sum[c][3]>0){
+      cents[c]=[sum[c][0]/sum[c][3],sum[c][1]/sum[c][3],sum[c][2]/sum[c][3]];
+    }
+  }
+  return cents;
+}
+/* stone anchor palettes — Aegean blues restored in v2 */
+const ANCHORS={
+  antique:[[232,221,196],[200,184,154],[164,80,46],[196,124,66],[122,90,58],
+           [160,190,214],[112,158,196],[62,110,160],[40,72,110],
+           [92,83,68],[52,45,36],[28,24,20],[146,150,116],[104,120,90]],
+  smalti:[[29,95,138],[195,61,30],[217,165,32],[31,122,77],[240,232,210],[40,35,45],[150,40,90],[90,160,190]],
+};
+const SKY_ANCHORS=[[160,190,214],[112,158,196],[70,120,170],[122,168,200]];
+const VEG_ANCHORS=[[126,148,96],[96,128,74],[64,96,58],[142,152,88]]; /* serpentine & green glass */
+function treatStone(c,style,sal=0){
+  let [r,g,b]=c;
+  if(style==='true')return [r,g,b];
+  if(style==='marble'){
+    const l=r*0.299+g*0.587+b*0.114;
+    const lc=128+(l-128)*1.12;
+    return [clamp(lc*1.04+8),clamp(lc*1.0+4),clamp(lc*0.92)];
+  }
+  const lum=r*0.299+g*0.587+b*0.114;
+  /* sky idealization (antique, low-saliency stones): the reference sky is a
+     confident Aegean blue, not a faithful grey — idealize toward it */
+  if(style==='antique' && sal<0.35 && lum>96 && b>=g-6 && b>r+4){
+    let an=SKY_ANCHORS[0],bd=1e12;
+    for(const a of SKY_ANCHORS){const d=(r-a[0])**2+(g-a[1])**2+(b-a[2])**2;if(d<bd){bd=d;an=a;}}
+    const t=0.58;
+    r=lerp(r,an[0],t);g=lerp(g,an[1],t);b=lerp(b,an[2],t);
+    /* chroma boost so blue rows read blue, not grey */
+    const l2=(Math.max(r,g,b)+Math.min(r,g,b))/2;
+    r=clamp(l2+(r-l2)*1.25);g=clamp(l2+(g-l2)*1.25);b=clamp(l2+(b-l2)*1.3);
+    return [r,g,b];
+  }
+  /* vegetation idealization (antique): the ancients had serpentine and
+     green glass — green source stones must stay green, not sink to umber */
+  if(style==='antique' && g>r+8 && g>b+8){
+    let an=VEG_ANCHORS[0],bd=1e12;
+    for(const a of VEG_ANCHORS){const d=(r-a[0])**2+(g-a[1])**2+(b-a[2])**2;if(d<bd){bd=d;an=a;}}
+    const t=0.45;
+    r=lerp(r,an[0],t);g=lerp(g,an[1],t);b=lerp(b,an[2],t);
+    const l2=(Math.max(r,g,b)+Math.min(r,g,b))/2;
+    return [clamp(l2+(r-l2)*1.12),clamp(l2+(g-l2)*1.18),clamp(l2+(b-l2)*1.12)];
+  }
+  const anchors=ANCHORS[style]||ANCHORS.antique;
+  let an=anchors[0],bd=1e12;
+  for(const a of anchors){const d=(r-a[0])**2+(g-a[1])**2+(b-a[2])**2;if(d<bd){bd=d;an=a;}}
+  /* chroma-preserving pull; subject stones are pulled less so their
+     tonal separations survive */
+  const chroma=Math.max(r,g,b)-Math.min(r,g,b);
+  const base=style==='smalti'?0.42:0.34;
+  const t=base*(1-Math.min(1,chroma/120)*0.55)*(1-sal*0.5);
+  r=lerp(r,an[0],t);g=lerp(g,an[1],t);b=lerp(b,an[2],t);
+  if(style==='antique'){
+    /* soften midtones only, and never inside the subject's tonal band */
+    const l=r*0.299+g*0.587+b*0.114;
+    const mid=Math.max(0,1-Math.abs(l-140)/140);
+    const lift=mid*14*(1-sal*0.8);
+    r=clamp(r+lift+2);g=clamp(g+lift);b=clamp(b+lift*0.7-2);
+  }
+  if(style==='smalti'){
+    const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;
+    const boost=1.25;
+    r=clamp(l+(r-l)*boost);g=clamp(l+(g-l)*boost);b=clamp(l+(b-l)*boost);
+  }
+  return [r,g,b];
+}
+function paintGrout(ctx,W,H,style,rand,paletteLum=140){
+  /* dark palettes get a lighter lime grout so lacunae and gaps read */
+  const base=style==='marble'?'#cdc4b2':style==='smalti'?(paletteLum<138?'#b8ad94':'#8f8677'):'#cfc0a4';
+  ctx.fillStyle=base;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<26;i++){
+    const x=rand()*W,y=rand()*H,r=(0.15+rand()*0.3)*Math.max(W,H);
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    const dark=rand()<0.5;
+    g.addColorStop(0,dark?'rgba(90,75,55,0.10)':'rgba(255,248,230,0.10)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  grain(ctx,W,H,0.09,rand);
+}
+function grain(ctx,W,H,amt,rand){
+  const g=document.createElement('canvas');g.width=140;g.height=140;
+  const gc=g.getContext('2d');const id=gc.createImageData(140,140);
+  for(let i=0;i<id.data.length;i+=4){
+    const v=rand()*255|0;id.data[i]=id.data[i+1]=id.data[i+2]=v;id.data[i+3]=255*amt;
+  }
+  gc.putImageData(id,0,0);
+  ctx.save();ctx.globalCompositeOperation='overlay';
+  ctx.fillStyle=ctx.createPattern(g,'repeat');ctx.fillRect(0,0,W,H);ctx.restore();
+}
+function vignette(ctx,W,H,amt){
+  const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.35,W/2,H/2,Math.max(W,H)*0.72);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(35,22,8,${amt})`);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+function makeValueNoise(rand,W,H,scale){
+  const gw=Math.ceil(W/scale)+2, gh=Math.ceil(H/scale)+2;
+  const g=new Float32Array(gw*gh);for(let i=0;i<g.length;i++)g[i]=rand();
+  return (x,y)=>{
+    const fx=x/scale,fy=y/scale,x0=fx|0,y0=fy|0,tx=fx-x0,ty=fy-y0;
+    const sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty),i=y0*gw+x0;
+    return lerp(lerp(g[i],g[i+1],sx),lerp(g[i+gw],g[i+gw+1],sx),sy);
+  };
+}
+
+/* ---------- hash-driven auto mode (headless verification) ---------- */
+(function(){
+  const h=new URLSearchParams(location.hash.slice(1));
+  if(!h.get('img'))return;
+  for(const [k,cid] of [['size','c_size'],['gap','c_gap'],['pal','c_pal'],['irr','c_irr'],['age','c_age']]){
+    if(h.get(k)){$(cid).value=h.get(k);$(cid).dispatchEvent(new Event('input'));}
+  }
+  if(h.get('style')){controls.style=h.get('style');
+    [...styleWrap.children].forEach((b,i)=>{const on=STYLES[i].id===controls.style;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;});}
+  if(h.get('lay')){controls.layout=h.get('lay');
+    [...layWrap.children].forEach((b,i)=>{const on=LAYOUTS[i].id===controls.layout;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;});
+    syncDim();}
+  if(h.get('seed'))seed=+h.get('seed');
+  sampleToDataURL(h.get('img'));
+})();
+</script>
+</body>
+</html>
