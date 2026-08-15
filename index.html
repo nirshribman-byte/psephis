@@ -137,8 +137,8 @@ aside{
 .panelScroll{overflow-y:auto;flex:1;min-height:0;scrollbar-gutter:stable;position:relative}
 aside.canScroll .actions{box-shadow:0 -10px 14px -10px rgba(43,38,32,.35)}
 aside.canScroll .panelScroll{mask-image:linear-gradient(180deg,#000 calc(100% - 26px),rgba(0,0,0,.25))}
-aside .head{padding:14px 22px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-aside .head h3{font-family:'GFS Didot',serif;font-weight:400;font-size:19px;letter-spacing:.1em}
+aside .head{padding:10px 22px 6px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+aside .head h3{font-family:'GFS Didot',serif;font-weight:400;font-size:16px;letter-spacing:.08em;white-space:nowrap}
 aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
 #reset{
   font-family:'Alegreya Sans',sans-serif;font-size:12px;letter-spacing:.08em;
@@ -146,7 +146,7 @@ aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
   text-underline-offset:3px;padding:2px;
 }
 #reset:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.section{padding:7px 22px 6px;border-top:1px solid var(--line)}
+.section{padding:5px 22px 4px;border-top:1px solid var(--line)}
 .section .title{
   display:flex;justify-content:space-between;align-items:baseline;
   font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
@@ -155,7 +155,7 @@ aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
 .section .title output{font-family:'GFS Didot',serif;font-size:15px;color:var(--terra);letter-spacing:0}
 .section .cap{font-size:11.5px;color:#8d8172;margin:1px 0 2px}
 input[type=range]{
-  -webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;
+  -webkit-appearance:none;appearance:none;width:100%;height:23px;background:transparent;cursor:pointer;
 }
 input[type=range]::-webkit-slider-runnable-track{
   height:3px;background:linear-gradient(90deg,var(--terra) var(--fill,50%),var(--line) var(--fill,50%));
@@ -252,7 +252,7 @@ input[type=range]:disabled{opacity:.35;cursor:default}
     <div class="section">
       <label class="title" for="c_size">Tessera size <output id="o_size" aria-live="polite">10</output></label>
       <p class="cap">How large each stone is cut</p>
-      <input type="range" id="c_size" min="5" max="26" value="10" step="1" aria-label="Tessera size">
+      <input type="range" id="c_size" min="4" max="26" value="10" step="1" aria-label="Tessera size">
     </div>
     <div class="section">
       <label class="title" for="c_gap">Grout gap <output id="o_gap" aria-live="polite">2.0</output></label>
@@ -263,6 +263,11 @@ input[type=range]:disabled{opacity:.35;cursor:default}
       <label class="title" for="c_pal">Palette stones <output id="o_pal" aria-live="polite">16</output></label>
       <p class="cap">How many stone colors are used</p>
       <input type="range" id="c_pal" min="6" max="28" value="16" step="1" aria-label="Number of palette stones">
+    </div>
+    <div class="section">
+      <label class="title" for="c_fid">Fidelity <output id="o_fid" aria-live="polite">Free</output></label>
+      <p class="cap">0 — free ancient palette · 100 — photo-true stones</p>
+      <input type="range" id="c_fid" min="0" max="100" value="0" step="5" aria-label="Fidelity to the photograph">
     </div>
     <div class="section">
       <label class="title" for="c_irr">Hand of the maker <output id="o_irr" aria-live="polite">55</output></label>
@@ -310,10 +315,11 @@ const stage = $('stage'), drop = $('drop'), fileInp = $('file');
 const dlBtn = $('download'), newBtn = $('newimg'), recutBtn = $('recut');
 
 /* ---------- controls ---------- */
-const controls = {size:10, gap:2, pal:16, irr:55, age:10, style:'antique', layout:'vermiculatum'};
-const DEFAULTS = {size:10, gap:2, pal:16, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const controls = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const DEFAULTS = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
 const bindings = [['size','c_size','o_size',v=>v],['gap','c_gap','o_gap',v=>v.toFixed(1)],
-  ['pal','c_pal','o_pal',v=>v],['irr','c_irr','o_irr',v=>v],['age','c_age','o_age',v=>v===0?'None':v]];
+  ['pal','c_pal','o_pal',v=>v],['fid','c_fid','o_fid',v=>v===0?'Free':v],
+  ['irr','c_irr','o_irr',v=>v],['age','c_age','o_age',v=>v===0?'None':v]];
 for (const [key,cid,oid,fmt] of bindings){
   const el=$(cid), out=$(oid);
   const paint=()=>{const p=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty('--fill',p+'%');};
@@ -510,7 +516,7 @@ recutBtn.onclick=()=>{seed=(Math.random()*1e9)|0;toast(`Cut anew — seed ${seed
 
 /* ---------- render orchestration: fast preview while adjusting, full-res on idle ---------- */
 let renderToken=0, renderTimer=null, fullTimer=null, coachShown=false, lastTessCount=0;
-const FULL_DIM=1500, PREVIEW_DIM=760;
+const FULL_DIM=1920, PREVIEW_DIM=760;
 function scheduleRender(){
   if(!srcImg) return;
   clearTimeout(renderTimer); clearTimeout(fullTimer);
@@ -564,6 +570,7 @@ async function renderMosaic(token,maxdim){
   const AGE=controls.age/100;
   const CFG=LAY_CFG[controls.layout]||LAY_CFG.vermiculatum;
   const IRR=(controls.irr/100)*CFG.jitter;
+  const FID=controls.fid/100;   /* 0 = free ancient palette · 1 = photo-true stones */
   console.log('[psephis] start', controls.layout, controls.style, maxdim);
 
   /* --- output geometry (tessera size scales with resolution so
@@ -616,6 +623,8 @@ async function renderMosaic(token,maxdim){
   for(const arr of [jxx,jxy,jyy]) boxBlur(arr,aw,ah,R), boxBlur(arr,aw,ah,R);
 
   const magB=Float32Array.from(mag); boxBlur(magB,aw,ah,2);
+  /* wide-blur activity map: quiet regions lay in long calm courses */
+  const magBB=Float32Array.from(magB); boxBlur(magBB,aw,ah,Math.max(4,Math.round(T/A)*4));
   const thr=percentile(magB,0.86);
   const ridgeThr=percentile(magB,0.955);          // strongest edges -> outline rows
   const dist=new Float32Array(aw*ah).fill(1e5);
@@ -626,6 +635,7 @@ async function renderMosaic(token,maxdim){
 
   /* direction field as doubled-angle vector */
   const c2=new Float32Array(aw*ah), s2=new Float32Array(aw*ah);
+  const cohArr=new Float32Array(aw*ah);   /* edge coherence: contour vs mere texture */
   const falloff=(T/A)*CFG.falloff;
   for(let y=0;y<ah;y++)for(let x=0;x<aw;x++){
     const i=y*aw+x;
@@ -633,13 +643,16 @@ async function renderMosaic(token,maxdim){
     const thN=0.5*Math.atan2(2*jxy[i],d);
     const thT=thN+Math.PI/2;
     const coh=tr>1e-7 ? Math.hypot(d,2*jxy[i])/tr : 0;
+    cohArr[i]=coh;
     /* background flow: image's own large-scale tangent where it is
        coherent, easing to gentle waves where the image is featureless */
     const bd=bxx[i]-byy[i], btr=bxx[i]+byy[i];
     const thBT=0.5*Math.atan2(2*bxy[i],bd)+Math.PI/2;
     const bcoh=btr>1e-8 ? Math.hypot(bd,2*bxy[i])/btr : 0;
     const wImg=Math.min(1,bcoh*2.2)*(CFG.waves?1:0);
-    const thWave=(Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3)*CFG.waves;
+    /* a still sky must lie still: wave amplitude follows local activity */
+    const calm=Math.min(1, magBB[i]/(thr*0.9));
+    const thWave=(Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3)*CFG.waves*(0.18+0.82*calm);
     const cB=wImg*Math.cos(2*thBT)+(1-wImg)*Math.cos(2*thWave);
     const sB=wImg*Math.sin(2*thBT)+(1-wImg)*Math.sin(2*thWave);
     const w=falloff>0 ? Math.exp(-dist[i]/falloff)*Math.min(1,coh*1.6) : 0;
@@ -750,8 +763,23 @@ async function renderMosaic(token,maxdim){
   /* mean palette luminance — decides which way bare mortar must contrast */
   const paletteLum=cents.reduce((s,c)=>s+c[0]*0.299+c[1]*0.587+c[2]*0.114,0)/cents.length;
 
+  /* image luminance statistics: specular anchor + dark-scene floor */
+  const lums=Float32Array.from(samples,p=>p[0]*0.299+p[1]*0.587+p[2]*0.114).sort();
+  const medLum=lums[lums.length>>1];
+  const brightCut=lums[Math.min(lums.length-1,(lums.length*0.995)|0)];
+
   /* --- grout ground --- */
   paintGrout(ctx,W,H,controls.style,rand,paletteLum);
+  if(FID>0){
+    /* adaptive grout: mortar takes the photograph's own local tone, darker
+       and blurred — no more warm-beige veil over blue skies or teal storms */
+    ctx.save();
+    ctx.filter='blur(10px) saturate(0.8) brightness(0.78)';
+    ctx.globalAlpha=Math.min(0.92,FID);
+    ctx.drawImage(srcC,0,0,W,H);
+    ctx.restore();
+    grain(ctx,W,H,0.06,rand);
+  }
 
   /* ============================================================
      placement machinery (shared by outline + field passes)
@@ -829,15 +857,46 @@ async function renderMosaic(token,maxdim){
   const tiles=[];
   let placedCount=0;
 
-  /* place a tile; returns stone idx or -2 if rejected */
+  /* place a tile; returns stone idx or -2 if rejected.
+     Fidelity: the laid stone's color is the palette stone tinted toward the
+     photograph's true local tone — detail survives, grout/bevel/andamento
+     keep the mosaic feel. Outline stones blend toward a darkened sample so
+     the drawing stays legible at any fidelity. */
   function placeTile(x,y,th,sz,forceIdx,prevIdx){
     if(!(x>=sz*0.3&&y>=sz*0.3&&x<=W-sz*0.3&&y<=H-sz*0.3)) return -2;  // also rejects NaN
     if(!free(x,y,sz+GAP)) return -2;
     occupy(x,y,sz+GAP);
     placedCount++;
-    if(missing(x,y)){tiles.push([x,y,th,-1,sz]);return -3;}
-    const idx=forceIdx!=null?forceIdx:nearestStone(avgColorAt(x,y,sz),prevIdx,edgeDistAt(x,y),inSky(x,y));
-    tiles.push([x,y,th,idx,sz]);
+    if(missing(x,y)){tiles.push([x,y,th,null,sz]);return -3;}
+    const avg=avgColorAt(x,y,sz);
+    const idx=forceIdx!=null?forceIdx:nearestStone(avg,prevIdx,edgeDistAt(x,y),inSky(x,y));
+    let col=cents[idx];
+    if(FID>0){
+      const alum=avg[0]*0.299+avg[1]*0.587+avg[2]*0.114;
+      if(alum>=brightCut && brightCut>150 && forceIdx==null){
+        /* specular anchor: the sun, glints, burning cloud edges — laid as
+           near-full-brightness accent stones (gold-leaf smalti, in period) */
+        col=[clamp(avg[0]*1.06+8),clamp(avg[1]*1.06+8),clamp(avg[2]*1.05+6)];
+      } else {
+        /* photo-true tinting: hue and tone from the photograph, the stone
+           contributes only texture. Outline stones stay just mildly darker. */
+        const t=forceIdx!=null?FID*0.6:FID;
+        const dk=forceIdx!=null?0.86:1;
+        const tgt=[avg[0]*dk,avg[1]*dk,avg[2]*dk];
+        col=[lerp(col[0],tgt[0],t),lerp(col[1],tgt[1],t),lerp(col[2],tgt[2],t)];
+        /* restore chroma lost to sampling/stone pull — stronger in dark
+           tones so dusk reflections keep their color */
+        const l=(Math.max(col[0],col[1],col[2])+Math.min(col[0],col[1],col[2]))/2;
+        const s=1+FID*(0.22+0.25*Math.max(0,(110-alum)/110));
+        col=[clamp(l+(col[0]-l)*s),clamp(l+(col[1]-l)*s),clamp(l+(col[2]-l)*s)];
+        /* low-key scenes: gentle shadow-floor lift so dusk stays legible */
+        if(medLum<95){
+          const lift=(95-medLum)*0.22*Math.max(0,1-l/130)*FID;
+          col=[clamp(col[0]+lift),clamp(col[1]+lift),clamp(col[2]+lift*0.9)];
+        }
+      }
+    }
+    tiles.push([x,y,th,col,sz]);
     return idx;
   }
 
@@ -851,7 +910,9 @@ async function renderMosaic(token,maxdim){
   if(!CFG.outline) ridge.length=0; else {
   for(let y=1;y<ah-1;y++)for(let x=1;x<aw-1;x++){
     const i=y*aw+x;
-    if(magB[i]>ridgeThr)ridge.push([x*A, y*A, magB[i]]);
+    /* outline only STRUCTURAL contours (coherent edges) — mere texture
+       (grass, salt crust) must not be carpeted in darkened outline stones */
+    if(magB[i]>ridgeThr && cohArr[i]>0.42)ridge.push([x*A, y*A, magB[i]]);
     /* the sky/ground meeting line is always an outline course, even when
        the photographic gradient there is soft — keeps the horizon crisp */
     else if(skyMask[i]!==skyMask[i+aw])ridge.push([x*A, y*A, ridgeThr*1.5]);
@@ -957,9 +1018,13 @@ async function renderMosaic(token,maxdim){
   progress(0.78,'Setting & polishing…'); await tick(); if(token!==renderToken)return;
   console.log('[psephis] draw pass, tiles:', tiles.length);
   const LX=-0.707,LY=-0.707;
+  /* bevel strokes lighten their touch as fidelity rises — on 5px stones the
+     dark edge alone can sink a midtone field by a stop */
+  const litStroke=`rgba(255,252,235,${(0.28*(1-FID*0.3)).toFixed(3)})`;
+  const darkStroke=`rgba(20,12,5,${(0.22*(1-FID*0.45)).toFixed(3)})`;
   let drawn=0, laid=0;
-  for(const [x,y,th0,idx,sz] of tiles){
-    if(idx===-1){
+  for(const [x,y,th0,col,sz] of tiles){
+    if(!col){
       /* lost stone: bare mortar must contrast against the stones — raw lime
          reads LIGHT against dark palettes, shadowed against light ones */
       if(rand()<0.55){
@@ -968,7 +1033,6 @@ async function renderMosaic(token,maxdim){
       }
       continue;
     }
-    const col=cents[idx];
     const th=th0+(rand()-0.5)*IRR*0.35;
     const co=Math.cos(th),sn=Math.sin(th);
     const half=sz/2, jit=IRR*sz*0.16;
@@ -978,7 +1042,7 @@ async function renderMosaic(token,maxdim){
       const jx=bx+(rand()-0.5)*jit, jy=by+(rand()-0.5)*jit;
       pts.push([x+jx*co-jy*sn, y+jx*sn+jy*co]);
     }
-    const v=1+(rand()-0.5)*0.13;
+    const v=1+(rand()-0.5)*0.13*(1-FID*0.45);
     const r=clamp(col[0]*v),g=clamp(col[1]*v),b=clamp(col[2]*v);
     ctx.beginPath();
     ctx.moveTo(pts[0][0],pts[0][1]);
@@ -992,7 +1056,7 @@ async function renderMosaic(token,maxdim){
       const nl=Math.hypot(nx,ny)||1;
       const lit=(nx/nl)*LX+(ny/nl)*LY;
       ctx.beginPath();ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);
-      ctx.strokeStyle=lit>0?'rgba(255,252,235,0.28)':'rgba(20,12,5,0.22)';
+      ctx.strokeStyle=lit>0?litStroke:darkStroke;
       ctx.lineWidth=Math.max(0.6,sz*0.05);
       ctx.stroke();
     }
@@ -1000,8 +1064,10 @@ async function renderMosaic(token,maxdim){
     if(++drawn%3000===0){progress(0.78+0.18*drawn/tiles.length);await tick();if(token!==renderToken)return;}
   }
 
-  grain(ctx,W,H,0.05+AGE*0.05,rand);
-  vignette(ctx,W,H,0.16+AGE*0.08);
+  /* patina eases off as fidelity rises — a wallpaper must not be vignetted
+     into shadow-crush at its borders */
+  grain(ctx,W,H,(0.05+AGE*0.05)*(1-FID*0.5),rand);
+  vignette(ctx,W,H,(0.16+AGE*0.08)*(1-FID*0.85));
 
   /* snapshot for hold-to-compare */
   resultC=document.createElement('canvas');resultC.width=W;resultC.height=H;
@@ -1176,7 +1242,7 @@ function makeValueNoise(rand,W,H,scale){
 (function(){
   const h=new URLSearchParams(location.hash.slice(1));
   if(!h.get('img'))return;
-  for(const [k,cid] of [['size','c_size'],['gap','c_gap'],['pal','c_pal'],['irr','c_irr'],['age','c_age']]){
+  for(const [k,cid] of [['size','c_size'],['gap','c_gap'],['pal','c_pal'],['fid','c_fid'],['irr','c_irr'],['age','c_age']]){
     if(h.get(k)){$(cid).value=h.get(k);$(cid).dispatchEvent(new Event('input'));}
   }
   if(h.get('style')){controls.style=h.get('style');
