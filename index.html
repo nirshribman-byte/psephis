@@ -153,7 +153,7 @@ aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
   color:var(--ink-soft);
 }
 .section .title output{font-family:'GFS Didot',serif;font-size:15px;color:var(--terra);letter-spacing:0}
-.section .cap{font-size:11.5px;color:#8d8172;margin:1px 0 2px}
+.section .cap{font-size:11.5px;color:#6f6552;margin:1px 0 2px}
 input[type=range]{
   -webkit-appearance:none;appearance:none;width:100%;height:23px;background:transparent;cursor:pointer;
 }
@@ -181,7 +181,7 @@ input[type=range]:focus-visible{outline:2px solid var(--gold);outline-offset:2px
   padding:6px 5px 6px;background:transparent;border:1px solid var(--line);border-radius:2px;
   color:var(--ink-soft);cursor:pointer;transition:all .15s;
 }
-.styles button .sw{display:flex;height:7px;border-radius:1px;overflow:hidden;margin-bottom:4px}
+.styles button .sw{display:flex;height:12px;border-radius:1px;overflow:hidden;margin-bottom:4px}
 .styles button .sw i{flex:1}
 .styles button:hover{border-color:var(--terra)}
 .styles button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
@@ -251,13 +251,13 @@ input[type=range]:disabled{opacity:.35;cursor:default}
     </div>
     <div class="section">
       <label class="title" for="c_size">Tessera size <output id="o_size" aria-live="polite">10</output></label>
-      <p class="cap">How large each stone is cut</p>
+      <p class="cap">How large each stone is cut · 4–26 px</p>
       <input type="range" id="c_size" min="4" max="26" value="10" step="1" aria-label="Tessera size">
     </div>
     <div class="section">
-      <label class="title" for="c_gap">Joints <output id="o_gap" aria-live="polite">2.0</output></label>
-      <div class="styles" id="jointBtns" role="radiogroup" aria-label="Joint style" style="margin-top:4px;margin-bottom:4px"></div>
-      <input type="range" id="c_gap" min="0.5" max="6" value="2" step="0.5" aria-label="Grout gap">
+      <label class="title" for="c_gap">Joint width <output id="o_gap" aria-live="polite">2.0</output></label>
+      <p class="cap">0 — close cut, stones butted · 6 — wide mortar</p>
+      <input type="range" id="c_gap" min="0" max="6" value="2" step="0.5" aria-label="Joint width, zero is close cut">
     </div>
     <div class="section">
       <label class="title" for="c_pal">Palette stones <output id="o_pal" aria-live="polite">16</output></label>
@@ -290,10 +290,10 @@ input[type=range]:disabled{opacity:.35;cursor:default}
     </div>
     </div>
     <div class="actions">
-      <button class="btn primary" id="download" disabled>Download panel</button>
+      <button class="btn primary" id="download" disabled>Download mosaic · 4K</button>
       <p class="export-note" id="exportNote"></p>
       <div class="btnRow">
-        <button class="btn ghost" id="recut" disabled>Re-cut stones</button>
+        <button class="btn ghost" id="recut" disabled title="Same settings, new random cuts">Re-cut stones</button>
         <button class="btn ghost" id="newimg" disabled>New photo</button>
       </div>
     </div>
@@ -315,9 +315,9 @@ const stage = $('stage'), drop = $('drop'), fileInp = $('file');
 const dlBtn = $('download'), newBtn = $('newimg'), recutBtn = $('recut');
 
 /* ---------- controls ---------- */
-const controls = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum', joint:'mortar'};
-const DEFAULTS = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum', joint:'mortar'};
-const bindings = [['size','c_size','o_size',v=>v],['gap','c_gap','o_gap',v=>v.toFixed(1)],
+const controls = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const DEFAULTS = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const bindings = [['size','c_size','o_size',v=>v],['gap','c_gap','o_gap',v=>v===0?'0 · close cut':v.toFixed(1)],
   ['pal','c_pal','o_pal',v=>v],['fid','c_fid','o_fid',v=>v===0?'Free':v],
   ['irr','c_irr','o_irr',v=>v],['age','c_age','o_age',v=>v===0?'None':v]];
 for (const [key,cid,oid,fmt] of bindings){
@@ -339,7 +339,9 @@ const LAY_CFG = {
   tessellatum: {falloff:2.2, waves:0,   outline:true,  adaptive:false, jitter:0.8},
   /* quasi: hand-set grid — smooth noise rotation field (radians, ±quasi/2),
      the reference's "every stone tilts with its neighbors" look */
-  regulatum:   {falloff:0,   waves:0,   outline:false, adaptive:false, jitter:0.85, quasi:0.95},
+  /* quasi = full ±90°: orientation swings freely patch-to-patch, the
+     reference sky's fan-shaped hand-set character (not corduroy) */
+  regulatum:   {falloff:0,   waves:0,   outline:true,  adaptive:false, jitter:0.85, quasi:3.1},
 };
 /* single-select groups as proper radiogroups with roving tabindex */
 function makeRadioGroup(wrap, items, key, renderLabel){
@@ -364,19 +366,13 @@ function makeRadioGroup(wrap, items, key, renderLabel){
 function selectRadio(wrap,items,key,idx){
   controls[key]=items[idx].id;
   [...wrap.children].forEach((x,i)=>{x.setAttribute('aria-checked',i===idx?'true':'false');x.tabIndex=i===idx?0:-1;});
-  if(key==='layout'||key==='joint')syncDim();
+  if(key==='layout')syncDim();
   scheduleRender();
 }
 const layWrap = $('layBtns');
 makeRadioGroup(layWrap, LAYOUTS, 'layout',
   l=>`${l.name}<br><span style="font-size:11px;font-weight:400;color:#8d8172">${l.cap}</span>`);
 
-const JOINTS=[
-  {id:'mortar', name:'Mortar'},
-  {id:'close',  name:'Close cut'},
-];
-const jointWrap=$('jointBtns');
-makeRadioGroup(jointWrap, JOINTS, 'joint', j=>j.name);
 const STYLES = [
   {id:'antique', name:'Antique',  sw:['#c8b89a','#a4502e','#4a7fae','#e8ddc4']},
   {id:'marble',  name:'Marble',   sw:['#efe9dd','#b9b2a4','#6d675c','#2f2b25']},
@@ -391,14 +387,7 @@ makeRadioGroup(styleWrap, STYLES, 'style',
 document.head.insertAdjacentHTML('beforeend',
   '<style>.styles button[aria-checked="true"]{border-color:var(--terra);color:var(--ink);font-weight:700;background:rgba(164,80,46,.12);box-shadow:inset 3px 0 0 var(--terra), inset 0 0 0 1px var(--terra)}</style>');
 
-/* strict grid has no hand: dim the irregularity control under Regulatum;
-   close-cut joints have no mortar width: dim the gap slider */
-function syncDim(){
-  /* regulatum is now a hand-set grid — the maker's hand applies everywhere */
-  const close=controls.joint==='close';
-  const g=$('c_gap');g.disabled=close;
-  $('o_gap').textContent=close?'Tight':(+g.value).toFixed(1);
-}
+function syncDim(){ /* all controls apply in every mode since the joint merge */ }
 
 /* reset to defaults */
 $('reset').onclick=()=>{
@@ -410,7 +399,6 @@ $('reset').onclick=()=>{
   }
   [...layWrap.children].forEach((b,i)=>{b.setAttribute('aria-checked',LAYOUTS[i].id===DEFAULTS.layout?'true':'false');b.tabIndex=LAYOUTS[i].id===DEFAULTS.layout?0:-1;});
   [...styleWrap.children].forEach((b,i)=>{b.setAttribute('aria-checked',STYLES[i].id===DEFAULTS.style?'true':'false');b.tabIndex=STYLES[i].id===DEFAULTS.style?0:-1;});
-  [...jointWrap.children].forEach((b,i)=>{b.setAttribute('aria-checked',JOINTS[i].id===DEFAULTS.joint?'true':'false');b.tabIndex=JOINTS[i].id===DEFAULTS.joint?0:-1;});
   syncDim();
   scheduleRender();
 };
@@ -532,17 +520,27 @@ function scheduleRender(){
   clearTimeout(renderTimer); clearTimeout(fullTimer);
   renderTimer=setTimeout(()=>render(PREVIEW_DIM,true),180);
 }
-dlBtn.onclick=()=>{
+const EXPORT_DIM=3840;
+dlBtn.onclick=async ()=>{
+  /* export renders fresh at up to 4K (same design — tessera size scales
+     with resolution), then leaves the 4K panel on screen */
+  dlBtn.disabled=true;
+  const old=dlBtn.textContent;
+  if(canvas.width<EXPORT_DIM && canvas.height<EXPORT_DIM){
+    dlBtn.textContent='Cutting 4K…';
+    await render(EXPORT_DIM,false);
+  }
+  dlBtn.textContent=old;dlBtn.disabled=false;
   canvas.toBlob(blob=>{
     if(!blob){toast('Export failed — try again.');return;}
     const a=document.createElement('a');
-    a.download=`psephis-${controls.layout}-${controls.style}-s${seed}.png`;
+    a.download=`psephis-${controls.layout}-${controls.style}-s${seed}-${canvas.width}x${canvas.height}px.png`;
     a.href=URL.createObjectURL(blob);a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   },'image/png');
 };
 
-async function render(maxdim=FULL_DIM, thenFull=false){
+async function render(maxdim=window.__dim||FULL_DIM, thenFull=false){
   if(!srcImg) return;
   const token=++renderToken;
   clearTimeout(fullTimer);
@@ -558,7 +556,10 @@ async function render(maxdim=FULL_DIM, thenFull=false){
       $('progress').style.display='none';
       if(resultC){
         dlBtn.disabled=false;
-        $('exportNote').textContent=`PNG · ${canvas.width} × ${canvas.height} px · ${lastTessCount.toLocaleString()} tesserae`;
+        /* the note reports the EXPORT size, never the preview size */
+        const k=Math.min(3, EXPORT_DIM/Math.max(srcImg.naturalWidth,srcImg.naturalHeight));
+        const exW=Math.round(srcImg.naturalWidth*k), exH=Math.round(srcImg.naturalHeight*k);
+        $('exportNote').textContent=`exports ${exW} × ${exH} px PNG · ${lastTessCount.toLocaleString()} tesserae`;
         const hint=$('hint');hint.style.display='block';hint.classList.remove('fade');
         clearTimeout(hint._t);hint._t=setTimeout(()=>hint.classList.add('fade'),4500);
         if(!coachShown){coachShown=true;$('coach').style.display='flex';
@@ -591,14 +592,19 @@ async function renderMosaic(token,maxdim){
 
   /* --- output geometry (tessera size scales with resolution so
          preview and full render show the same design) --- */
-  const scl=Math.min(1, maxdim/Math.max(srcImg.naturalWidth,srcImg.naturalHeight));
+  /* stones are drawn geometry, not pixels — rendering LARGER than the source
+     is legitimate (colors sample the photo, shapes stay crisp). Cap at 3x. */
+  const scl=Math.min(3, maxdim/Math.max(srcImg.naturalWidth,srcImg.naturalHeight));
   const W=Math.round(srcImg.naturalWidth*scl), H=Math.round(srcImg.naturalHeight*scl);
   const resScale=Math.max(W,H)/1500;
   const T=Math.max(3.2,controls.size*resScale);
   /* close cut: stones butt against each other — a slight negative gap plus
      enlarged quads leaves only a hairline seam, no mortar band */
-  const CLOSE=controls.joint==='close';
-  const GAP=CLOSE ? -T*0.06 : Math.max(0.4,controls.gap*resScale);
+  const CLOSE=controls.gap<=0.01;
+  /* mortar gap is capped relative to stone size — small stones must still
+     cover ~85% of the surface, as in the ancient panels. Close cut butts
+     harder: rows pull together so no grout channel can open between them */
+  const GAP=CLOSE ? -T*0.10 : Math.min(Math.max(0.4,controls.gap*resScale), T*0.22);
   canvas.width=W; canvas.height=H;
 
   /* --- source pixels --- */
@@ -658,8 +664,36 @@ async function renderMosaic(token,maxdim){
   const c2=new Float32Array(aw*ah), s2=new Float32Array(aw*ah);
   const cohArr=new Float32Array(aw*ah);   /* edge coherence: contour vs mere texture */
   const falloff=(T/A)*CFG.falloff;
-  /* hand-set grid: smooth rotation noise, coherent over ~8 stone-widths */
-  const quasiNoise=CFG.quasi?makeValueNoise(rand,aw,ah,Math.max(2.5,(T/A)*5)):null;
+  /* hand-set fans: the field is laid patch by patch — jittered seed centers,
+     each patch coursing in concentric arcs around its own seed, direction
+     resetting at every patch boundary (the reference sky's signature) */
+  let fanAngleAt=null;
+  if(CFG.quasi){
+    /* patches ~20 stone-widths, each with its own base direction; courses
+       are that direction bent gently around the patch seed — shallow fans
+       that reset patch to patch, never closed bullseyes */
+    const pr=Math.max(8,(T/A)*20);
+    const gw2=Math.ceil(aw/pr)+2, gh2=Math.ceil(ah/pr)+2;
+    const sx=new Float32Array(gw2*gh2), sy=new Float32Array(gw2*gh2), sb=new Float32Array(gw2*gh2);
+    for(let j=0;j<gh2;j++)for(let i=0;i<gw2;i++){
+      sx[j*gw2+i]=(i+0.15+rand()*0.7)*pr;
+      sy[j*gw2+i]=(j+0.15+rand()*0.7)*pr;
+      sb[j*gw2+i]=rand()*Math.PI;
+    }
+    fanAngleAt=(x,y)=>{
+      const ci=Math.min(gw2-2,Math.max(1,x/pr|0)), cj=Math.min(gh2-2,Math.max(1,y/pr|0));
+      let bd=1e12,bx=0,by=0,bi=0;
+      for(let j=cj-1;j<=cj+1;j++)for(let i=ci-1;i<=ci+1;i++){
+        const k=j*gw2+i, dx=sx[k]-x, dy=sy[k]-y, d=dx*dx+dy*dy;
+        if(d<bd){bd=d;bx=dx;by=dy;bi=k;}
+      }
+      const base=sb[bi], tan=Math.atan2(by,bx)+Math.PI/2;
+      const wq=0.38;   // curvature share: enough to fan, never to orbit
+      return 0.5*Math.atan2(
+        (1-wq)*Math.sin(2*base)+wq*Math.sin(2*tan),
+        (1-wq)*Math.cos(2*base)+wq*Math.cos(2*tan));
+    };
+  }
   for(let y=0;y<ah;y++)for(let x=0;x<aw;x++){
     const i=y*aw+x;
     const d=jxx[i]-jyy[i], tr=jxx[i]+jyy[i];
@@ -676,7 +710,7 @@ async function renderMosaic(token,maxdim){
     /* a still sky must lie still: wave amplitude follows local activity */
     const calm=Math.min(1, magBB[i]/(thr*0.9));
     const thWave=CFG.quasi
-      ? (quasiNoise(x,y)-0.5)*CFG.quasi
+      ? fanAngleAt(x,y)
       : (Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3)*CFG.waves*(0.18+0.82*calm);
     const cB=wImg*Math.cos(2*thBT)+(1-wImg)*Math.cos(2*thWave);
     const sB=wImg*Math.sin(2*thBT)+(1-wImg)*Math.sin(2*thWave);
@@ -784,6 +818,11 @@ async function renderMosaic(token,maxdim){
     const i=Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0));
     return 1-Math.min(1,magBB[i]/(thr*0.9));
   };
+  /* busy texture (grass, crust): strong gradients but low coherence */
+  const texturedAt=(x,y)=>{
+    const i=Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0));
+    return magB[i]>thr*0.55 && cohArr[i]<0.45;
+  };
   /* stone trays: which stones may be laid in the sky */
   const skyStone=cents.map(c=>{
     const l=c[0]*0.299+c[1]*0.587+c[2]*0.114;
@@ -808,7 +847,7 @@ async function renderMosaic(token,maxdim){
     /* adaptive grout: mortar takes the photograph's own local tone, darker
        and blurred — no more warm-beige veil over blue skies or teal storms */
     ctx.save();
-    ctx.filter='blur(10px) saturate(0.8) brightness(0.78)';
+    ctx.filter='blur(5px) saturate(0.72) brightness(0.76)';
     ctx.globalAlpha=Math.min(0.92,FID);
     ctx.drawImage(srcC,0,0,W,H);
     ctx.restore();
@@ -842,16 +881,46 @@ async function renderMosaic(token,maxdim){
   } : ()=>T;
 
   /* edge-aware color sampling: median-side, not mean-across-boundary */
+  /* low-res color context for shock-sharpening: near an edge, a stone's
+     color is pushed AWAY from the soft transition mean toward its own side —
+     no grey halo ring can form around subjects or along the horizon */
+  const ctxC=document.createElement('canvas');ctxC.width=aw;ctxC.height=ah;
+  const ctxCtx=ctxC.getContext('2d',{willReadFrequently:true});
+  ctxCtx.filter='blur(2px)';
+  ctxCtx.drawImage(srcC,0,0,aw,ah);
+  const ctxData=ctxCtx.getImageData(0,0,aw,ah).data;
+  const blurColAt=(x,y)=>{
+    const i=(Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0)))*4;
+    return [ctxData[i],ctxData[i+1],ctxData[i+2]];
+  };
+
   const taps=new Array(5);
   function avgColorAt(x,y,sz){
     const o=sz*0.30;
     const pts=[[x,y],[x-o,y-o],[x+o,y-o],[x-o,y+o],[x+o,y+o]];
     for(let k=0;k<5;k++){const i=px(pts[k][0],pts[k][1]);taps[k]=[img[i],img[i+1],img[i+2],lumAt(i)];}
+    /* busy texture: area-average — a stone is one cut of stone, never a
+       point-sample of photographic noise (keeps the lattice legible) */
+    if(texturedAt(x,y)){
+      let r=0,g=0,b=0;
+      for(const t of taps){r+=t[0];g+=t[1];b+=t[2];}
+      taps.sort((a,b)=>a[3]-b[3]);
+      return [r/5,g/5,b/5];
+    }
     taps.sort((a,b)=>a[3]-b[3]);
     const med=taps[2];
     let r=0,g=0,b=0,n=0;
     for(const t of taps){if(Math.abs(t[3]-med[3])<34){r+=t[0];g+=t[1];b+=t[2];n++;}}
-    return [r/n,g/n,b/n];
+    r/=n;g/=n;b/=n;
+    /* shock-sharpen inside soft transitions: push away from the local
+       blurred mean so the stone commits to ITS side of the boundary */
+    const ed=edgeDistAt(x,y);
+    if(ed<T*2){
+      const k=0.9*(1-ed/(T*2));
+      const bl=blurColAt(x,y);
+      r=clamp(r+(r-bl[0])*k);g=clamp(g+(g-bl[1])*k);b=clamp(b+(b-bl[2])*k);
+    }
+    return [r,g,b];
   }
   function nearestStone(c,prevIdx,eDist,sky){
     const pixBlue=c[2]>c[1]&&c[2]>c[0];
@@ -926,8 +995,8 @@ async function renderMosaic(token,maxdim){
         const avgP=[a0,a1,a2]; avg=avgP;
         /* photo-true tinting: hue and tone from the photograph, the stone
            contributes only texture. Outline stones stay just mildly darker. */
-        const t=forceIdx!=null?FID*0.6:FID;
-        const dk=forceIdx!=null?0.86:1;
+        const t=forceIdx!=null?FID*0.75:FID;
+        const dk=forceIdx!=null?0.92:1;
         const tgt=[avg[0]*dk,avg[1]*dk,avg[2]*dk];
         col=[lerp(col[0],tgt[0],t),lerp(col[1],tgt[1],t),lerp(col[2],tgt[2],t)];
         /* restore chroma lost to sampling/stone pull — stronger in dark
@@ -962,24 +1031,27 @@ async function renderMosaic(token,maxdim){
     /* thin high-contrast structures (umbrella ribs, stems): weaker gradient
        but very coherent — they earn an outline course too */
     else if(magB[i]>ridgeThinThr && cohArr[i]>0.68)ridge.push([x*A, y*A, magB[i]*0.8]);
-    /* the sky/ground meeting line is always an outline course, even when
-       the photographic gradient there is soft — keeps the horizon crisp */
-    else if(skyMask[i]!==skyMask[i+aw])ridge.push([x*A, y*A, ridgeThr*1.5]);
+    /* inside busy texture, the strongest internal edges (stalks, leaf
+       boundaries) get deliberate follow-rows — drawing, not confetti */
+    else if(magB[i]>ridgeThinThr && cohArr[i]>0.35 && dist[i]<2)ridge.push([x*A, y*A, magB[i]*0.6]);
   }
   ridge.sort((a,b)=>b[2]-a[2]);
   }
   const outT=T*0.74, outSep=outT+GAP*0.8;
   function outlineColor(x,y,th){
-    /* darker side of the boundary, darkened further — classical outline.
-       Inside the sky the outline must still come from the sky tray, or
-       cloud borders read as dirt streaks */
+    /* the darker side's TRUE color, only mildly deepened — an outline is a
+       committed stone of its side, never a grey ring around the subject */
     const nx=-Math.sin(th),ny=Math.cos(th),off=outT*0.9;
     const x1=x+nx*off,y1=y+ny*off,x2=x-nx*off,y2=y-ny*off;
     const i1=px(x1,y1), i2=px(x2,y2);
     const darkFirst=lumAt(i1)<lumAt(i2);
     const c=darkFirst?[img[i1],img[i1+1],img[i1+2]]:[img[i2],img[i2+1],img[i2+2]];
+    /* deepen lightness, keep chroma */
+    const l=(Math.max(c[0],c[1],c[2])+Math.min(c[0],c[1],c[2]))/2;
+    const d=0.86;
+    const cc=[clamp(l*d+(c[0]-l)),clamp(l*d+(c[1]-l)),clamp(l*d+(c[2]-l))];
     const bothSky=inSky(x1,y1)&&inSky(x2,y2);
-    return nearestStone([c[0]*0.72,c[1]*0.72,c[2]*0.72],-1,0,bothSky);
+    return nearestStone(cc,-1,0,bothSky);
   }
   for(const [sx,sy] of ridge){
     if(!free(sx,sy,outSep))continue;
@@ -1061,6 +1133,24 @@ async function renderMosaic(token,maxdim){
   while(stack.length && iters<MAXITER){iters++;const s=stack.pop();trace(s[0],s[1]);}
   console.log('[psephis] field done, iters',iters);
 
+  /* gap-fill pass: no bare patch survives — every free spot gets a stone,
+     like the wedge fillers of a real workshop */
+  progress(0.74,'Filling the gaps…'); await tick(); if(token!==renderToken)return;
+  {
+    const step=Math.max(1.6,T*0.4);
+    let n=0;
+    for(let y=T*0.35;y<H;y+=step){
+      for(let x=T*0.35;x<W;x+=step){
+        const sz=sizeAt(x,y);
+        if(!free(x,y,sz+GAP))continue;
+        placeTile(x,y,angleAt(x,y),sz,null,-1);
+        n++;
+      }
+      if((y/step|0)%40===0){await tick();if(token!==renderToken)return;}
+    }
+    console.log('[psephis] gap-fill added',n);
+  }
+
   /* ============================================================
      draw tiles: irregular quads + bevel light; lacunae as recess
      ============================================================ */
@@ -1071,7 +1161,7 @@ async function renderMosaic(token,maxdim){
      dark edge alone can sink a midtone field by a stop */
   const litStroke=CLOSE?'rgba(255,252,235,0.16)':`rgba(255,252,235,${(0.28*(1-FID*0.3)).toFixed(3)})`;
   const darkStroke=CLOSE?'rgba(25,16,8,0.25)':`rgba(20,12,5,${(0.22*(1-FID*0.45)).toFixed(3)})`;
-  const expand=CLOSE?1.10:1;   /* close-cut quads overlap to cover the ground */
+  const expand=CLOSE?1.08:1;   /* close-cut quads overlap to cover the ground */
   const seamStroke='rgba(28,19,9,0.30)';   /* hairline joint between butted stones */
   let drawn=0, laid=0;
   for(const [x,y,th0,col,sz] of tiles){
@@ -1084,17 +1174,34 @@ async function renderMosaic(token,maxdim){
       }
       continue;
     }
-    const th=th0+(rand()-0.5)*IRR*0.35;
+    /* hand-cut character survives at any stone size: rotation and corner
+       jitter have absolute floors so tiny stones never sit rail-aligned */
+    const th=th0+(rand()-0.5)*(0.10+IRR*0.32);
     const co=Math.cos(th),sn=Math.sin(th);
-    const half=(sz/2)*expand, jit=IRR*sz*0.16*(CLOSE?0.7:1);
+    /* cut variety: aspect ratio 1:1→1:1.7, occasional clipped-corner wedge */
+    const ar=1+rand()*0.35*IRR;
+    const halfW=(sz/2)*expand*ar, halfH=(sz/2)*expand/ar;
+    const jit=sz*(0.05+IRR*0.15)*(CLOSE?0.85:1);
     const pts=[];
-    const base=[[-half,-half],[half,-half],[half,half],[-half,half]];
-    for(const [bx,by] of base){
+    const base=[[-halfW,-halfH],[halfW,-halfH],[halfW,halfH],[-halfW,halfH]];
+    const wedge=rand()<0.10*IRR ? (rand()*4)|0 : -1;
+    for(let k=0;k<4;k++){
+      let [bx,by]=base[k];
+      if(k===wedge){bx*=0.45;by*=0.45;}
       const jx=bx+(rand()-0.5)*jit, jy=by+(rand()-0.5)*jit;
       pts.push([x+jx*co-jy*sn, y+jx*sn+jy*co]);
     }
-    const v=1+(rand()-0.5)*0.13*(1-FID*0.45);
-    const r=clamp(col[0]*v),g=clamp(col[1]*v),b=clamp(col[2]*v);
+    /* flat fields must shimmer, and stone faces stay luminous against dark
+       seams — small value jitter + fidelity-scaled chroma/contrast lift */
+    const v=1+(rand()-0.5)*0.13*(1-FID*0.2);
+    let r=clamp(col[0]*v),g=clamp(col[1]*v),b=clamp(col[2]*v);
+    if(FID>0){
+      const l=(Math.max(r,g,b)+Math.min(r,g,b))/2;
+      const cs=1+0.10*FID;
+      r=clamp(l+(r-l)*cs+(r-128)*0.05*FID);
+      g=clamp(l+(g-l)*cs+(g-128)*0.05*FID);
+      b=clamp(l+(b-l)*cs+(b-128)*0.05*FID);
+    }
     ctx.beginPath();
     ctx.moveTo(pts[0][0],pts[0][1]);
     for(let k=1;k<4;k++)ctx.lineTo(pts[k][0],pts[k][1]);
@@ -1106,8 +1213,8 @@ async function renderMosaic(token,maxdim){
          neighbors repaint theirs, so the joint network stays continuous.
          At high fidelity the seam is a darker shade of the stone itself,
          so no warm bed scratches across a clean blue sky. */
-      ctx.strokeStyle=FID>=0.5?`rgba(${(r*0.42)|0},${(g*0.42)|0},${(b*0.46)|0},0.5)`:seamStroke;
-      ctx.lineWidth=Math.max(0.45,sz*0.055);
+      ctx.strokeStyle=FID>=0.5?`rgba(${(r*0.38)|0},${(g*0.38)|0},${(b*0.42)|0},0.55)`:seamStroke;
+      ctx.lineWidth=Math.max(0.5,sz*0.055);
       ctx.stroke();
     }
     for(let k=0;k<4;k++){
@@ -1305,9 +1412,7 @@ function makeValueNoise(rand,W,H,scale){
   for(const [k,cid] of [['size','c_size'],['gap','c_gap'],['pal','c_pal'],['fid','c_fid'],['irr','c_irr'],['age','c_age']]){
     if(h.get(k)){$(cid).value=h.get(k);$(cid).dispatchEvent(new Event('input'));}
   }
-  if(h.get('joint')){controls.joint=h.get('joint');
-    [...jointWrap.children].forEach((b,i)=>{const on=JOINTS[i].id===controls.joint;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;});
-    syncDim();}
+  if(h.get('joint')==='close'){controls.gap=0;$('c_gap').value=0;$('c_gap').dispatchEvent(new Event('input'));}
   if(h.get('style')){controls.style=h.get('style');
     [...styleWrap.children].forEach((b,i)=>{const on=STYLES[i].id===controls.style;b.setAttribute('aria-checked',on?'true':'false');b.tabIndex=on?0:-1;});}
   if(h.get('lay')){controls.layout=h.get('lay');
@@ -1315,6 +1420,7 @@ function makeValueNoise(rand,W,H,scale){
     syncDim();}
   if(h.get('seed'))seed=+h.get('seed');
   if(h.get('shot'))window.__shotMode=true;
+  if(h.get('dim'))window.__dim=+h.get('dim');
   sampleToDataURL(h.get('img'));
 })();
 </script>
