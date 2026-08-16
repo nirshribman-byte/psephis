@@ -138,7 +138,7 @@ aside{
 aside.canScroll .actions{box-shadow:0 -10px 14px -10px rgba(43,38,32,.35)}
 aside.canScroll .panelScroll{mask-image:linear-gradient(180deg,#000 calc(100% - 26px),rgba(0,0,0,.25))}
 aside .head{padding:10px 22px 6px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-aside .head h3{font-family:'GFS Didot',serif;font-weight:400;font-size:16px;letter-spacing:.08em;white-space:nowrap}
+aside .head h3{font-family:'GFS Didot',serif;font-weight:400;font-size:clamp(13px,1.15vw + 6px,16px);letter-spacing:.06em;white-space:nowrap}
 aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
 #reset{
   font-family:'Alegreya Sans',sans-serif;font-size:12px;letter-spacing:.08em;
@@ -181,7 +181,7 @@ input[type=range]:focus-visible{outline:2px solid var(--gold);outline-offset:2px
   padding:6px 5px 6px;background:transparent;border:1px solid var(--line);border-radius:2px;
   color:var(--ink-soft);cursor:pointer;transition:all .15s;
 }
-.styles button .sw{display:flex;height:12px;border-radius:1px;overflow:hidden;margin-bottom:4px}
+.styles button .sw{display:flex;height:18px;border-radius:1px;overflow:hidden;margin-bottom:5px}
 .styles button .sw i{flex:1}
 .styles button:hover{border-color:var(--terra)}
 .styles button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
@@ -190,8 +190,8 @@ input[type=range]:focus-visible{outline:2px solid var(--gold);outline-offset:2px
   background:var(--panel);flex-shrink:0}
 .btn{padding:11px}
 .btnRow{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-#styleBtns{grid-template-columns:repeat(4,1fr)}
-#styleBtns button{font-size:11.5px;padding:5px 3px}
+#styleBtns{grid-template-columns:repeat(2,1fr)}
+#styleBtns button{font-size:12.5px;padding:6px 5px}
 .btnRow .btn{padding:10px 6px;font-size:12.5px;letter-spacing:.1em}
 input[type=range]:disabled{opacity:.35;cursor:default}
 .section.dimmed .title,.section.dimmed .cap{opacity:.45}
@@ -202,7 +202,7 @@ input[type=range]:disabled{opacity:.35;cursor:default}
 .btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .btn.primary{background:var(--terra);color:#f7efdd;box-shadow:0 6px 18px -6px rgba(164,80,46,.7)}
 .btn.primary:hover:not(:disabled){background:#8f4325;transform:translateY(-1px)}
-.btn:disabled{background:#d8cdb8;color:#a2957c;cursor:default;transform:none;box-shadow:none}
+.btn:disabled{background:#d8cdb8;color:#a2957c;cursor:default;transform:none;box-shadow:none;pointer-events:none}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink-soft)}
 .btn.ghost:hover:not(:disabled){border-color:var(--ink-soft);color:var(--ink)}
 .btn.ghost:disabled{background:transparent;border-color:var(--line);color:#b8ac92}
@@ -290,7 +290,7 @@ input[type=range]:disabled{opacity:.35;cursor:default}
     </div>
     </div>
     <div class="actions">
-      <button class="btn primary" id="download" disabled>Download mosaic · 4K</button>
+      <button class="btn primary" id="download" disabled title="Lay a photograph first">Download mosaic · 4K</button>
       <p class="export-note" id="exportNote"></p>
       <div class="btnRow">
         <button class="btn ghost" id="recut" disabled title="Same settings, new random cuts">Re-cut stones</button>
@@ -324,6 +324,12 @@ for (const [key,cid,oid,fmt] of bindings){
   const el=$(cid), out=$(oid);
   const paint=()=>{const p=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty('--fill',p+'%');};
   el.addEventListener('input',()=>{controls[key]=+el.value;out.textContent=fmt(+el.value);paint();scheduleRender();});
+  /* double-click a slider to return it alone to its default */
+  el.title='Double-click to reset';
+  el.addEventListener('dblclick',()=>{
+    el.value=DEFAULTS[key];controls[key]=DEFAULTS[key];
+    out.textContent=fmt(DEFAULTS[key]);paint();scheduleRender();
+  });
   paint();
 }
 const LAYOUTS = [
@@ -521,6 +527,14 @@ function scheduleRender(){
   renderTimer=setTimeout(()=>render(PREVIEW_DIM,true),180);
 }
 const EXPORT_DIM=3840;
+/* disabled buttons swallow clicks (pointer-events:none lets them pass
+   through) — catch them on the row and explain why Download sleeps */
+document.querySelector('.actions').addEventListener('click',e=>{
+  if(!dlBtn.disabled||resultC)return;   // resultC set = just busy exporting
+  const r=dlBtn.getBoundingClientRect();
+  if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)
+    toast('Lay a photograph first — the mosaic downloads once one is cut.');
+});
 dlBtn.onclick=async ()=>{
   /* export renders fresh at up to 4K (same design — tessera size scales
      with resolution), then leaves the 4K panel on screen */
@@ -555,7 +569,7 @@ async function render(maxdim=window.__dim||FULL_DIM, thenFull=false){
       canvas.classList.remove('working');
       $('progress').style.display='none';
       if(resultC){
-        dlBtn.disabled=false;
+        dlBtn.disabled=false;dlBtn.title='';
         /* the note reports the EXPORT size, never the preview size */
         const k=Math.min(3, EXPORT_DIM/Math.max(srcImg.naturalWidth,srcImg.naturalHeight));
         const exW=Math.round(srcImg.naturalWidth*k), exH=Math.round(srcImg.naturalHeight*k);
@@ -706,12 +720,17 @@ async function renderMosaic(token,maxdim){
     const bd=bxx[i]-byy[i], btr=bxx[i]+byy[i];
     const thBT=0.5*Math.atan2(2*bxy[i],bd)+Math.PI/2;
     const bcoh=btr>1e-8 ? Math.hypot(bd,2*bxy[i])/btr : 0;
-    const wImg=Math.min(1,bcoh*2.2)*(CFG.waves?1:0);
     /* a still sky must lie still: wave amplitude follows local activity */
     const calm=Math.min(1, magBB[i]/(thr*0.9));
+    /* featureless regions also stop chasing noisy large-scale tangents */
+    const wImg=Math.min(1,bcoh*2.2)*(CFG.waves?1:0)*(0.3+0.7*calm);
+    /* open sky lies in LONG shallow arcs (2.4x wavelength, gentle swing);
+       the livelier short wave appears only where local activity earns it */
+    const wLong=Math.sin(x*A*0.005+y*A*0.0025)*0.5+Math.cos(y*A*0.004)*0.35;
+    const wAct =Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3;
     const thWave=CFG.quasi
       ? fanAngleAt(x,y)
-      : (Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3)*CFG.waves*(0.18+0.82*calm);
+      : (wAct*calm + wLong*0.4*(1-calm))*CFG.waves;
     const cB=wImg*Math.cos(2*thBT)+(1-wImg)*Math.cos(2*thWave);
     const sB=wImg*Math.sin(2*thBT)+(1-wImg)*Math.sin(2*thWave);
     const w=falloff>0 ? Math.exp(-dist[i]/falloff)*Math.min(1,coh*1.6) : 0;
@@ -755,6 +774,24 @@ async function renderMosaic(token,maxdim){
       let dmin=1e12;
       for(const g of rawCents){const d=(c[0]-g[0])**2+(c[1]-g[1])**2+(c[2]-g[2])**2;if(d<dmin)dmin=d;}
       if(dmin>24*24)rawCents.push(c);
+    }
+  }
+  /* shadow palette: dark tones are compressed, so global k-means starves
+     them of distinct stones — cut a few from the darkest quartile directly
+     (histogram-equalized allocation for the shadow end) */
+  {
+    const lums=samples.map(s=>s[0]*0.299+s[1]*0.587+s[2]*0.114);
+    const sorted=Float32Array.from(lums).sort();
+    const darkThr=Math.min(90,sorted[(sorted.length*0.25)|0]);
+    const darkSamples=samples.filter((s,i)=>lums[i]<darkThr);
+    if(darkSamples.length>80){
+      const KD=Math.min(4,Math.max(2,Math.round(K*0.2)));
+      const dkC=kmeans(darkSamples,KD,rand);
+      for(const c of dkC){
+        let dmin=1e12;
+        for(const g of rawCents){const d=(c[0]-g[0])**2+(c[1]-g[1])**2+(c[2]-g[2])**2;if(d<dmin)dmin=d;}
+        if(dmin>18*18)rawCents.push(c);
+      }
     }
   }
   /* per-stone saliency: share of its members that came from detailed regions */
@@ -922,10 +959,11 @@ async function renderMosaic(token,maxdim){
     }
     return [r,g,b];
   }
-  function nearestStone(c,prevIdx,eDist,sky){
+  function nearestStone(c,prevIdx,eDist,sky,ban){
     const pixBlue=c[2]>c[1]&&c[2]>c[0];
     let bi=-1,bd=1e9;
     for(let k=0;k<cents.length;k++){
+      if(k===ban&&cents.length>1)continue;             // run-cap exclusion
       if(sky&&anySkyStone&&!skyStone[k])continue;      // sky tray only
       const s=cents[k];
       const dr=c[0]-s[0],dg=c[1]-s[1],db=c[2]-s[2];
@@ -1038,7 +1076,7 @@ async function renderMosaic(token,maxdim){
   ridge.sort((a,b)=>b[2]-a[2]);
   }
   const outT=T*0.74, outSep=outT+GAP*0.8;
-  function outlineColor(x,y,th){
+  function outlineColor(x,y,th,ban){
     /* the darker side's TRUE color, only mildly deepened — an outline is a
        committed stone of its side, never a grey ring around the subject */
     const nx=-Math.sin(th),ny=Math.cos(th),off=outT*0.9;
@@ -1051,14 +1089,18 @@ async function renderMosaic(token,maxdim){
     const d=0.86;
     const cc=[clamp(l*d+(c[0]-l)),clamp(l*d+(c[1]-l)),clamp(l*d+(c[2]-l))];
     const bothSky=inSky(x1,y1)&&inSky(x2,y2);
-    return nearestStone(cc,-1,0,bothSky);
+    return nearestStone(cc,-1,0,bothSky,ban);
   }
   for(const [sx,sy] of ridge){
     if(!free(sx,sy,outSep))continue;
     let th=angleAt(sx,sy);
-    if(placeTile(sx,sy,th,outT,outlineColor(sx,sy,th))===-2)continue;
+    const fi0=outlineColor(sx,sy,th);
+    if(placeTile(sx,sy,th,outT,fi0)===-2)continue;
     for(const sgn of [1,-1]){
       let x=sx,y=sy,dx=Math.cos(th)*sgn,dy=Math.sin(th)*sgn,fails=0;
+      /* run cap on outline courses too — same-stone runs longer than 3
+         read as a colored ribbon (the smalti pink-ribbon failure) */
+      let prevO=fi0,runO=0;
       for(let n=0;n<300;n++){
         let a=angleAt(x+dx*outSep*0.5,y+dy*outSep*0.5);
         let vx=Math.cos(a),vy=Math.sin(a);
@@ -1067,7 +1109,10 @@ async function renderMosaic(token,maxdim){
         if(x<0||y<0||x>W||y>H)break;
         if(edgeDistAt(x,y)>T*0.9)break;          // left the contour
         const a2=angleAt(x,y);
-        if(placeTile(x,y,a2,outT,outlineColor(x,y,a2))!==-2)fails=0;
+        const fi=outlineColor(x,y,a2,runO>=3?prevO:-1);
+        if(placeTile(x,y,a2,outT,fi)!==-2){
+          runO=(fi===prevO)?runO+1:0;prevO=fi;fails=0;
+        }
         else if(++fails>1)break;
       }
     }
