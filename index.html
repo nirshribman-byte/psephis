@@ -67,14 +67,14 @@ header,.frame{max-width:1460px;margin-inline:auto}
   /* the workbench owns its column: fill the viewport height, never float
      as a small box in a beige void */
   width:100%;
-  min-height:clamp(420px, calc(100vh - 230px), 820px);
+  min-height:clamp(420px, calc(100vh - 260px), 640px);
   max-height:calc(100vh - 160px);
   max-width:100%;
   display:flex;align-items:center;justify-content:center;
   padding:30px 30px 44px;
   overflow:hidden;
 }
-#stage.hasArt{width:fit-content;min-height:420px}
+#stage.hasArt{min-height:420px}
 #stage.zoomed{align-items:flex-start;justify-content:flex-start;overflow:auto;width:100%}
 #canvas{max-width:calc(100vw - 480px);max-height:calc(100vh - 250px);display:none;box-shadow:0 10px 40px -8px rgba(0,0,0,.7);cursor:zoom-in;transition:opacity .25s;touch-action:none;-webkit-user-select:none;user-select:none}
 #stage.zoomed #canvas{max-width:none;max-height:none;cursor:zoom-out}
@@ -92,9 +92,10 @@ header,.frame{max-width:1460px;margin-inline:auto}
 #drop h2{font-family:'GFS Didot',serif;font-weight:400;font-size:22px;margin:14px 0 6px;letter-spacing:.06em}
 #drop p{font-size:14px;color:#a2977e}
 #drop p b{color:#cfc4ab}
-#samples{margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#samples{margin-top:10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.sampleLabel{margin-top:24px;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:#a2977e}
 #samples img{
-  width:74px;height:52px;object-fit:cover;cursor:pointer;border-radius:2px;
+  width:104px;height:72px;object-fit:cover;cursor:pointer;border-radius:2px;
   border:2px solid rgba(233,224,205,.25);transition:transform .15s,border-color .15s;
 }
 #samples img:hover,#samples img:focus-visible{transform:translateY(-3px);border-color:var(--gold)}
@@ -209,7 +210,7 @@ input[type=range]:disabled{opacity:.35;cursor:default}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink-soft)}
 .btn.ghost:hover:not(:disabled){border-color:var(--ink-soft);color:var(--ink)}
 .btn.ghost:disabled{background:transparent;border-color:var(--line);color:#b8ac92}
-.export-note{font-size:12px;color:#8d8172;text-align:center;min-height:16px;margin-top:-4px}
+.export-note{font-size:12.5px;color:#7d7262;text-align:center;min-height:16px;margin-top:-4px}
 .byline{padding:10px 22px 18px;font-size:12px;color:#8d8172;line-height:1.5}
 @media (max-width:900px){
   main{grid-template-columns:1fr}
@@ -233,6 +234,7 @@ input[type=range]:disabled{opacity:.35;cursor:default}
         <h2>Lay a photograph on the workbench</h2>
         <p><b>Drop an image here</b> or click to browse.<br>It will be cut into tesserae, row by row, the ancient way.</p>
       </div>
+      <p class="sampleLabel" id="sampleLabel" style="display:none">or try a sample</p>
       <div id="samples"></div>
       <p id="sampleNote" style="display:none;font-size:12px;color:#8f846a;margin-top:14px">Sample photographs appear when the atelier is served over http.</p>
     </div>
@@ -258,27 +260,27 @@ input[type=range]:disabled{opacity:.35;cursor:default}
       <input type="range" id="c_size" min="4" max="26" value="10" step="1" aria-label="Tessera size">
     </div>
     <div class="section">
-      <label class="title" for="c_gap">Joint width <output id="o_gap" aria-live="polite">2.0 px</output></label>
+      <label class="title" for="c_gap">Joint width <output id="o_gap" aria-live="polite">1.0 px</output></label>
       <p class="cap">0 — close cut, stones butted · 6 — wide mortar</p>
-      <input type="range" id="c_gap" min="0" max="6" value="2" step="0.5" aria-label="Joint width, zero is close cut">
+      <input type="range" id="c_gap" min="0" max="6" value="1" step="0.5" aria-label="Joint width, zero is close cut">
     </div>
     <div class="section">
-      <label class="title" for="c_pal">Palette stones <output id="o_pal" aria-live="polite">16</output></label>
+      <label class="title" for="c_pal">Palette stones <output id="o_pal" aria-live="polite">16 stones</output></label>
       <p class="cap">How many stone colors are used</p>
       <input type="range" id="c_pal" min="6" max="28" value="16" step="1" aria-label="Number of palette stones">
     </div>
     <div class="section">
-      <label class="title" for="c_fid">Fidelity <output id="o_fid" aria-live="polite">0</output></label>
+      <label class="title" for="c_fid">Fidelity <output id="o_fid" aria-live="polite">0 / 100</output></label>
       <p class="cap">0 — free ancient palette · 100 — photo-true stones</p>
       <input type="range" id="c_fid" min="0" max="100" value="0" step="5" aria-label="Fidelity to the photograph">
     </div>
     <div class="section">
-      <label class="title" for="c_irr">Hand of the maker <output id="o_irr" aria-live="polite">55</output></label>
+      <label class="title" for="c_irr">Hand of the maker <output id="o_irr" aria-live="polite">55 / 100</output></label>
       <p class="cap">Irregularity of each cut &amp; row</p>
       <input type="range" id="c_irr" min="0" max="100" value="55" step="5" aria-label="Irregularity of cuts">
     </div>
     <div class="section">
-      <label class="title" for="c_age">Weathering <output id="o_age" aria-live="polite">10</output></label>
+      <label class="title" for="c_age">Weathering <output id="o_age" aria-live="polite">10 / 100</output></label>
       <p class="cap">Centuries of loss — 0 none · 100 patches of bare mortar</p>
       <input type="range" id="c_age" min="0" max="100" value="10" step="5" aria-label="Weathering amount">
     </div>
@@ -318,13 +320,13 @@ const stage = $('stage'), drop = $('drop'), fileInp = $('file');
 const dlBtn = $('download'), newBtn = $('newimg'), recutBtn = $('recut');
 
 /* ---------- controls ---------- */
-const controls = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
-const DEFAULTS = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const controls = {size:10, gap:1, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
+const DEFAULTS = {size:10, gap:1, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
 /* one value-label rule: always the number (+ unit where one exists);
    named endpoints live in the caption line, not in the value slot */
 const bindings = [['size','c_size','o_size',v=>v+' px'],['gap','c_gap','o_gap',v=>v.toFixed(1)+' px'],
-  ['pal','c_pal','o_pal',v=>v],['fid','c_fid','o_fid',v=>v],
-  ['irr','c_irr','o_irr',v=>v],['age','c_age','o_age',v=>v]];
+  ['pal','c_pal','o_pal',v=>v+' stones'],['fid','c_fid','o_fid',v=>v+' / 100'],
+  ['irr','c_irr','o_irr',v=>v+' / 100'],['age','c_age','o_age',v=>v+' / 100']];
 for (const [key,cid,oid,fmt] of bindings){
   const el=$(cid), out=$(oid);
   const paint=()=>{const p=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty('--fill',p+'%');};
@@ -382,7 +384,7 @@ function selectRadio(wrap,items,key,idx){
 }
 const layWrap = $('layBtns');
 makeRadioGroup(layWrap, LAYOUTS, 'layout',
-  l=>`${l.name}<br><span style="font-size:11px;font-weight:400;color:#8d8172">${l.cap}</span>`);
+  l=>`${l.name}<br><span style="font-size:12px;font-weight:400;color:#7d7262">${l.cap}</span>`);
 
 const STYLES = [
   {id:'antique', name:'Antique',  sw:['#c8b89a','#a4502e','#4a7fae','#e8ddc4']},
@@ -462,6 +464,7 @@ newBtn.onclick=()=>fileInp.click();
 const SAMPLES=['samples/DSC_2464.jpg','samples/DSC_2824.jpg','samples/DSC_2599.jpg','samples/DSC_2714.jpg'];
 if(location.protocol.startsWith('http')){
   const wrap=$('samples');
+  $('sampleLabel').style.display='block';
   SAMPLES.forEach(src=>{
     const t=new Image();t.src=src;t.title='Use this sample';t.alt='Sample photograph';t.tabIndex=0;
     t.setAttribute('role','button');
@@ -687,7 +690,7 @@ async function renderMosaic(token,maxdim){
      each patch coursing in concentric arcs around its own seed, direction
      resetting at every patch boundary (the reference sky's signature) */
   let fanAngleAt=null;
-  if(CFG.quasi){
+  {
     /* patches ~20 stone-widths, each with its own base direction; courses
        are that direction bent gently around the patch seed — shallow fans
        that reset patch to patch, never closed bullseyes */
@@ -699,7 +702,10 @@ async function renderMosaic(token,maxdim){
       sy[j*gw2+i]=(j+0.15+rand()*0.7)*pr;
       sb[j*gw2+i]=rand()*Math.PI;
     }
-    fanAngleAt=(x,y)=>{
+    /* wq = curvature share. Stones that CARRY angle (regulatum) can fan at
+       0.38; streamlines that FOLLOW the field accumulate curvature into
+       fingerprint whorls, so they get a nearly straight patch direction */
+    fanAngleAt=(x,y,wq=0.38)=>{
       const ci=Math.min(gw2-2,Math.max(1,x/pr|0)), cj=Math.min(gh2-2,Math.max(1,y/pr|0));
       let bd=1e12,bx=0,by=0,bi=0;
       for(let j=cj-1;j<=cj+1;j++)for(let i=ci-1;i<=ci+1;i++){
@@ -707,7 +713,6 @@ async function renderMosaic(token,maxdim){
         if(d<bd){bd=d;bx=dx;by=dy;bi=k;}
       }
       const base=sb[bi], tan=Math.atan2(by,bx)+Math.PI/2;
-      const wq=0.38;   // curvature share: enough to fan, never to orbit
       return 0.5*Math.atan2(
         (1-wq)*Math.sin(2*base)+wq*Math.sin(2*tan),
         (1-wq)*Math.cos(2*base)+wq*Math.cos(2*tan));
@@ -727,17 +732,32 @@ async function renderMosaic(token,maxdim){
     const bcoh=btr>1e-8 ? Math.hypot(bd,2*bxy[i])/btr : 0;
     /* a still sky must lie still: wave amplitude follows local activity */
     const calm=Math.min(1, magBB[i]/(thr*0.9));
+    /* busy texture (strong gradients, no coherent contour): the tangent
+       field is pure noise there — never follow it */
+    const tex=Math.min(1,magB[i]/(thr*0.55))*(1-Math.min(1,cohArr[i]/0.45));
     /* featureless regions also stop chasing noisy large-scale tangents */
-    const wImg=Math.min(1,bcoh*2.2)*(CFG.waves?1:0)*(0.3+0.7*calm);
+    const wImg=Math.min(1,bcoh*2.2)*(CFG.waves?1:0)*(0.3+0.7*calm)*(1-0.75*tex);
     /* open sky lies in LONG shallow arcs (2.4x wavelength, gentle swing);
        the livelier short wave appears only where local activity earns it */
     const wLong=Math.sin(x*A*0.005+y*A*0.0025)*0.5+Math.cos(y*A*0.004)*0.35;
     const wAct =Math.sin(x*A*0.012+y*A*0.006)*0.45+Math.cos(y*A*0.010)*0.3;
-    const thWave=CFG.quasi
-      ? fanAngleAt(x,y)
-      : (wAct*calm + wLong*0.4*(1-calm))*CFG.waves;
-    const cB=wImg*Math.cos(2*thBT)+(1-wImg)*Math.cos(2*thWave);
-    const sB=wImg*Math.sin(2*thBT)+(1-wImg)*Math.sin(2*thWave);
+    let cB,sB;
+    if(CFG.quasi){
+      const thWave=fanAngleAt(x,y);
+      cB=wImg*Math.cos(2*thBT)+(1-wImg)*Math.cos(2*thWave);
+      sB=wImg*Math.sin(2*thBT)+(1-wImg)*Math.sin(2*thWave);
+    } else {
+      /* hand-set fan patches carry the open field and busy texture — the
+         reference sky is packed patch by patch, never in endless corduroy
+         rows; waves only season where the image itself moves */
+      const thWave=(wAct*calm + wLong*0.4*(1-calm))*CFG.waves;
+      const thFan=fanAngleAt(x,y,0.12);
+      const fw=Math.min(1,(0.65*(1-calm)+0.9*tex)*(CFG.waves?1:0));
+      const cW=(1-fw)*Math.cos(2*thWave)+fw*Math.cos(2*thFan);
+      const sW=(1-fw)*Math.sin(2*thWave)+fw*Math.sin(2*thFan);
+      cB=wImg*Math.cos(2*thBT)+(1-wImg)*cW;
+      sB=wImg*Math.sin(2*thBT)+(1-wImg)*sW;
+    }
     const w=falloff>0 ? Math.exp(-dist[i]/falloff)*Math.min(1,coh*1.6) : 0;
     c2[i]=w*Math.cos(2*thT)+(1-w)*cB;
     s2[i]=w*Math.sin(2*thT)+(1-w)*sB;
@@ -919,7 +939,10 @@ async function renderMosaic(token,maxdim){
       const p=px((i%aw)*A,((i/aw)|0)*A);
       const r=img[p],g2=img[p+1],b=img[p+2];
       const l=r*0.299+g2*0.587+b*0.114;
-      const w=Math.max(0,Math.min(1,(150-l)/110));
+      const ch=Math.max(r,g2,b)-Math.min(r,g2,b);
+      /* mortar follows the stones in dark passages AND in saturated fields —
+         a vivid blue tray must not sit on beige joints */
+      const w=Math.max(0,Math.min(1,Math.max((150-l)/110,(ch-40)/90*0.55)));
       gid.data[i*4]=r*0.82;gid.data[i*4+1]=g2*0.82;gid.data[i*4+2]=b*0.82;
       gid.data[i*4+3]=235*w;
     }
@@ -995,7 +1018,7 @@ async function renderMosaic(token,maxdim){
     if(lloc>=120)return [r,g,b];
     const bl=blurColAt(x,y);
     const m=bl[0]*0.299+bl[1]*0.587+bl[2]*0.114;
-    const st=1+0.55*Math.min(1,(120-lloc)/120);
+    const st=1+0.75*Math.min(1,(120-lloc)/120);
     return [clamp(m+(r-m)*st),clamp(m+(g-m)*st),clamp(m+(b-m)*st)];
   }
   function avgColorAt(x,y,sz){
@@ -1008,7 +1031,10 @@ async function renderMosaic(token,maxdim){
       let r=0,g=0,b=0;
       for(const t of taps){r+=t[0];g+=t[1];b+=t[2];}
       taps.sort((a,b)=>a[3]-b[3]);
-      return darkStretch(r/5,g/5,b/5,x,y);
+      /* simplify before tessellating: busy texture pulls toward the local
+         regional tone, so the fill reads as drawn shapes, not stone noise */
+      const bl=blurColAt(x,y);
+      return darkStretch(r/5*0.55+bl[0]*0.45,g/5*0.55+bl[1]*0.45,b/5*0.55+bl[2]*0.45,x,y);
     }
     taps.sort((a,b)=>a[3]-b[3]);
     const med=taps[2];
@@ -1466,9 +1492,18 @@ function treatStone(c,style,sal=0){
   /* chroma-preserving pull; subject stones are pulled less so their
      tonal separations survive */
   const chroma=Math.max(r,g,b)-Math.min(r,g,b);
-  const base=style==='smalti'?0.42:0.34;
+  const base=style==='smalti'?0.56:0.34;
   const t=base*(1-Math.min(1,chroma/120)*0.55)*(1-sal*0.5);
   r=lerp(r,an[0],t);g=lerp(g,an[1],t);b=lerp(b,an[2],t);
+  if(style==='smalti'){
+    /* smalti IS saturated glass — stones with a real hue commit to it
+       (cobalt, gold, bottle-green). True neutrals stay honest milk or
+       charcoal glass; amplifying their noise hue only breeds a mint cast */
+    const l=(Math.max(r,g,b)+Math.min(r,g,b))/2;
+    const ch=Math.max(r,g,b)-Math.min(r,g,b);
+    const s=Math.min(2.2, ch>=18 ? Math.max(1.15,46/ch) : 1);
+    r=clamp(l+(r-l)*s);g=clamp(l+(g-l)*s);b=clamp(l+(b-l)*s);
+  }
   if(style==='antique'){
     /* soften midtones only, and never inside the subject's tonal band */
     const l=r*0.299+g*0.587+b*0.114;
