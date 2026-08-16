@@ -833,6 +833,25 @@ async function renderMosaic(token,maxdim){
         if(cand[j]&&!skyMask[j]){skyMask[j]=1;q.push(j);}
       }
     }
+    /* absorb grey haze: bright low-chroma cells adjoining the sky join its
+       tray, so warm k-means haze splits can't pepper the blue field —
+       chromatic clouds (cream, pink dusk) stay outside on their chroma */
+    for(let it=0;it<6;it++){
+      let changed=0;
+      for(let y=1;y<ah-1;y++)for(let x=1;x<aw-1;x++){
+        const i=y*aw+x;
+        if(skyMask[i])continue;
+        if(!(skyMask[i-1]||skyMask[i+1]||skyMask[i-aw]||skyMask[i+aw]))continue;
+        const p=px(x*A,y*A);
+        const r=img[p],g=img[p+1],b=img[p+2];
+        const l=r*0.299+g*0.587+b*0.114;
+        const ch=Math.max(r,g,b)-Math.min(r,g,b);
+        /* midtone haze only — bright cloud cores (l>=190) keep their own
+           cream tray, so clouds survive the absorption */
+        if(l>110&&l<190&&ch<24){skyMask[i]=1;changed++;}
+      }
+      if(!changed)break;
+    }
     /* majority smoothing: swallow pinhole gaps so no lone warm tessera
        floats in a blue field (salt-and-pepper flecks) */
     for(let pass=0;pass<2;pass++){
@@ -865,7 +884,9 @@ async function renderMosaic(token,maxdim){
     const l=c[0]*0.299+c[1]*0.587+c[2]*0.114;
     const chroma=Math.max(c[0],c[1],c[2])-Math.min(c[0],c[1],c[2]);
     const blueDom=c[2]>c[0]+4&&c[2]>=c[1]-4;
-    const neutralLight=l>150&&chroma<30;
+    /* neutrals must lean cool — warm-tinted greys (k-means haze splits,
+       which multiply as K grows) read as tan pepper across a blue field */
+    const neutralLight=l>150&&chroma<30&&c[2]>=c[0]-4;
     return blueDom||neutralLight;
   });
   const anySkyStone=skyStone.some(Boolean);
@@ -968,11 +989,13 @@ async function renderMosaic(token,maxdim){
       const s=cents[k];
       const dr=c[0]-s[0],dg=c[1]-s[1],db=c[2]-s[2];
       let dd=dr*dr*0.6+dg*dg*0.9+db*db*0.5;
-      /* in the sky, a blue-leaning pixel prefers chromatic blue stones
-         over neutral whites — closes the washed-out gap to the reference */
+      /* in the sky, a blue-leaning pixel COMMITS to blue stones — greys and
+         warm neutrals barely compete, no matter how many K splits the haze
+         into (the grey-pepper failure grew with the palette slider) */
       if(sky&&pixBlue){
         const chroma=Math.max(s[0],s[1],s[2])-Math.min(s[0],s[1],s[2]);
-        if(chroma<30)dd*=1.35;
+        if(s[0]>s[2]+2)dd*=2.4;        // warm stone in a blue field
+        else if(chroma<30)dd*=1.5;     // grey stone: discouraged
       }
       if(dd<bd){bd=dd;bi=k;}}
     if(bi<0)bi=0;
