@@ -50,8 +50,11 @@ header .sub{font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:v
 main{
   position:relative;z-index:1;
   display:grid;grid-template-columns:minmax(0,1fr) 430px;
-  gap:26px;padding:22px 34px 40px;align-items:start;
+  gap:26px;padding:22px 34px 40px;align-items:center;
   max-width:1460px;margin-inline:auto;
+  /* the work and its table sit centered in what's left of the viewport —
+     no unstructured field of cream below the composition */
+  min-height:calc(100vh - 132px);
 }
 header,.frame{max-width:1460px;margin-inline:auto}
 /* ---------- stage ---------- */
@@ -84,7 +87,8 @@ header,.frame{max-width:1460px;margin-inline:auto}
 #drop{
   border:1.5px dashed rgba(233,224,205,.4);
   border-radius:4px;color:#cfc4ab;
-  width:min(560px,90%);padding:56px 30px;text-align:center;cursor:pointer;
+  width:100%;align-self:stretch;display:flex;flex-direction:column;justify-content:center;
+  padding:40px 30px;text-align:center;cursor:pointer;
   transition:border-color .2s, background .2s;
 }
 #drop:hover,#drop.over{border-color:var(--gold);background:rgba(185,138,47,.07)}
@@ -165,7 +169,7 @@ aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
   color:var(--ink-soft);
 }
 .section .title output{font-family:'GFS Didot',serif;font-size:15px;color:var(--terra);letter-spacing:0}
-.section .cap{font-size:12.5px;color:#5d5444;margin:1px 0 2px}
+.section .cap{font-size:13px;color:#544c3e;margin:1px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 input[type=range]{
   -webkit-appearance:none;appearance:none;width:100%;height:27px;background:transparent;cursor:pointer;
 }
@@ -279,18 +283,18 @@ input[type=range]:disabled{opacity:.35;cursor:default}
       <input type="range" id="c_pal" min="6" max="28" value="16" step="1" aria-label="Number of palette stones">
     </div>
     <div class="section">
-      <label class="title" for="c_fid">Fidelity <output id="o_fid" aria-live="polite">0</output></label>
-      <p class="cap">0 free ancient palette · 100 photo-true</p>
+      <label class="title" for="c_fid">Stone match <output id="o_fid" aria-live="polite">0</output></label>
+      <p class="cap">0 ancient palette · 100 photo-true</p>
       <input type="range" id="c_fid" min="0" max="100" value="0" step="5" aria-label="Fidelity to the photograph">
     </div>
     <div class="section">
       <label class="title" for="c_irr">Hand of the maker <output id="o_irr" aria-live="polite">55</output></label>
-      <p class="cap">0 ruler-straight · 100 free hand</p>
+      <p class="cap">0 ruler-straight · 100 free-hand</p>
       <input type="range" id="c_irr" min="0" max="100" value="55" step="5" aria-label="Irregularity of cuts">
     </div>
     <div class="section">
       <label class="title" for="c_age">Weathering <output id="o_age" aria-live="polite">10</output></label>
-      <p class="cap">0 untouched · 100 bare mortar patches</p>
+      <p class="cap">0 untouched · 100 lost stones</p>
       <input type="range" id="c_age" min="0" max="100" value="10" step="5" aria-label="Weathering amount">
     </div>
     </div>
@@ -770,12 +774,17 @@ async function renderMosaic(token,maxdim){
          reference sky is packed patch by patch, never in endless corduroy
          rows; waves only season where the image itself moves */
       const thWave=(wAct*calm + wLong*0.4*(1-calm))*CFG.waves;
-      const thFan=fanAngleAt(x,y,0.12);
-      const fw=Math.min(1,(0.65*(1-calm)+0.9*tex)*(CFG.waves?1:0));
+      /* dark passages are laid in LONG, LAZY, near-parallel courses — the
+         reference fills its blacks calmly; whorls and orbits are the
+         machine's tell, so darkness silences the noisy tangent field */
+      const dk=Math.max(0,1-gray[i]/0.28);
+      const thFan=fanAngleAt(x,y,dk>0.3?0.04:0.12);
+      const fw=Math.min(1,(0.65*(1-calm)+0.9*tex)*(CFG.waves?1:0)+0.85*dk);
       const cW=(1-fw)*Math.cos(2*thWave)+fw*Math.cos(2*thFan);
       const sW=(1-fw)*Math.sin(2*thWave)+fw*Math.sin(2*thFan);
-      cB=wImg*Math.cos(2*thBT)+(1-wImg)*cW;
-      sB=wImg*Math.sin(2*thBT)+(1-wImg)*sW;
+      const wI=wImg*(1-0.8*dk);
+      cB=wI*Math.cos(2*thBT)+(1-wI)*cW;
+      sB=wI*Math.sin(2*thBT)+(1-wI)*sW;
     }
     const w=falloff>0 ? Math.exp(-dist[i]/falloff)*Math.min(1,coh*1.6) : 0;
     c2[i]=w*Math.cos(2*thT)+(1-w)*cB;
@@ -851,6 +860,20 @@ async function renderMosaic(token,maxdim){
     const sal=allHits[i]>0?Math.min(1,(salHits[i]/allHits[i])*2):0;
     return treatStone(c,controls.style,sal);
   });
+  /* dark trays keep distinguishable value steps: two near-black stones a
+     hair apart read as one — spread them so shadow masses resolve */
+  {
+    const dk=cents.map((c,i)=>({i,l:c[0]*0.299+c[1]*0.587+c[2]*0.114}))
+      .filter(o=>o.l<85).sort((a,b)=>a.l-b.l);
+    for(let k=1;k<dk.length;k++){
+      const need=dk[k-1].l+11-dk[k].l;
+      if(need>0){
+        const c=cents[dk[k].i],f=(dk[k].l+need)/Math.max(1,dk[k].l);
+        cents[dk[k].i]=[clamp(c[0]*f),clamp(c[1]*f),clamp(c[2]*f)];
+        dk[k].l+=need;
+      }
+    }
+  }
   /* index of darkest stone, for outline rows */
   let darkIdx=0,darkL=1e9;
   cents.forEach((c,i)=>{const l=c[0]*0.299+c[1]*0.587+c[2]*0.114;if(l<darkL){darkL=l;darkIdx=i;}});
@@ -963,7 +986,10 @@ async function renderMosaic(token,maxdim){
          but stays a step LIGHTER than the stones it joints: real mortar is
          never as dark as the darkest smalti, and the visible joint is what
          keeps a shadow mass reading as laid stone instead of paint */
-      const w=Math.max(0,Math.min(1,Math.max((150-l)/110,(ch-40)/90*0.55)));
+      /* a gentle floor everywhere: mortar always leans toward its region's
+         own tone, so a clean blue field stops reading khaki through the
+         joints. Dark and saturated passages pull harder still. */
+      const w=Math.max(0.38,Math.min(1,Math.max((150-l)/110,(ch-40)/90*0.55)));
       gid.data[i*4]=r*0.72+52;gid.data[i*4+1]=g2*0.72+50;gid.data[i*4+2]=b*0.72+44;
       gid.data[i*4+3]=215*w;
     }
@@ -1004,7 +1030,10 @@ async function renderMosaic(token,maxdim){
      together in dark masses the way the ancient panels pack their blacks */
   const gapAt=CLOSE?()=>GAP:(x,y)=>{
     const l=gray[Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0))];
-    return GAP*(0.75+0.25*Math.min(1,l/0.55));
+    const g=GAP*(0.75+0.25*Math.min(1,l/0.55));
+    /* ten dark stones must never fuse into one blob: the joint keeps an
+       absolute floor in shadow so every stone stays separable at zoom */
+    return l<0.3?Math.max(g,1.0*resScale):g;
   };
 
   /* adaptive tessera size: fine stones near contours (vermiculatum).
@@ -1045,8 +1074,19 @@ async function renderMosaic(token,maxdim){
     if(lloc>=120)return [r,g,b];
     const bl=blurColAt(x,y);
     const m=bl[0]*0.299+bl[1]*0.587+bl[2]*0.114;
-    const st=1+0.75*Math.min(1,(120-lloc)/120);
-    return [clamp(m+(r-m)*st),clamp(m+(g-m)*st),clamp(m+(b-m)*st)];
+    /* interior drawing: inside a shadow mass the local contrast is opened
+       hard, so a figure gets value bands (face, sleeve, fold) instead of
+       one silhouette — this is where the ancient panel spends its craft */
+    const st=1+1.5*Math.min(1,(120-lloc)/120);
+    let rr=m+(r-m)*st, gg=m+(g-m)*st, bb=m+(b-m)*st;
+    /* shadow lift before quantization: the bottom two stops must land on
+       distinguishable trays, not collapse into one black */
+    const ll=rr*0.299+gg*0.587+bb*0.114;
+    if(ll<70){
+      const lift=(70-ll)*0.42;
+      rr+=lift;gg+=lift*0.97;bb+=lift*0.92;
+    }
+    return [clamp(rr),clamp(gg),clamp(bb)];
   }
   function avgColorAt(x,y,sz){
     const o=sz*0.30;
@@ -1550,10 +1590,14 @@ function treatStone(c,style,sal=0){
     const l=(Math.max(r,g,b)+Math.min(r,g,b))/2;
     const ch=Math.max(r,g,b)-Math.min(r,g,b);
     if(ch<18){
+      /* a neutral takes the tray's COLOR but keeps its own value — the
+         workshop tints the glass, it does not flatten the drawing */
       const lm=r*0.299+g*0.587+b*0.114;
       const an=lm>178?[242,235,214]:lm>92?[35,102,148]:[18,42,66];
-      const t=lm>178?0.4:0.7;
-      r=lerp(r,an[0],t);g=lerp(g,an[1],t);b=lerp(b,an[2],t);
+      const anL=an[0]*0.299+an[1]*0.587+an[2]*0.114;
+      const t=lm>178?0.4:0.62;
+      const k=lm/Math.max(1,anL);                    // rescale tray to this value
+      r=lerp(r,clamp(an[0]*k),t);g=lerp(g,clamp(an[1]*k),t);b=lerp(b,clamp(an[2]*k),t);
     } else {
       const s=Math.min(2.2,Math.max(1.3,46/ch));
       r=clamp(l+(r-l)*s);g=clamp(l+(g-l)*s);b=clamp(l+(b-l)*s);
