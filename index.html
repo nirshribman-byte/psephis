@@ -712,6 +712,24 @@ async function renderMosaic(token,maxdim){
   /* hand-set fans: the field is laid patch by patch — jittered seed centers,
      each patch coursing in concentric arcs around its own seed, direction
      resetting at every patch boundary (the reference sky's signature) */
+  /* calm drift field: ONE dominant direction with a slow smooth wander.
+     The ancient panels lay long parallel courses that bend only when a form
+     makes them bend; concentric patch fans put a fingerprint whorl at every
+     seed and a chevron at every patch seam, which is the machine's tell. */
+  const driftAt=(()=>{
+    const cell=Math.max(10,(T/A)*30);
+    const gw3=Math.ceil(aw/cell)+3, gh3=Math.ceil(ah/cell)+3;
+    const g=new Float32Array(gw3*gh3);
+    for(let i=0;i<g.length;i++)g[i]=rand()*2-1;
+    return (x,y,spread)=>{
+      const fx=x/cell+1, fy=y/cell+1;
+      const x0=Math.min(gw3-2,Math.max(0,fx|0)), y0=Math.min(gh3-2,Math.max(0,fy|0));
+      const tx=fx-x0, ty=fy-y0;
+      const sx2=tx*tx*(3-2*tx), sy2=ty*ty*(3-2*ty), i=y0*gw3+x0;
+      const a=lerp(g[i],g[i+1],sx2), b=lerp(g[i+gw3],g[i+gw3+1],sx2);
+      return lerp(a,b,sy2)*spread;      // 0 = the panel's dominant course
+    };
+  })();
   let fanAngleAt=null;
   {
     /* patches ~20 stone-widths, each with its own base direction; courses
@@ -774,14 +792,15 @@ async function renderMosaic(token,maxdim){
          reference sky is packed patch by patch, never in endless corduroy
          rows; waves only season where the image itself moves */
       const thWave=(wAct*calm + wLong*0.4*(1-calm))*CFG.waves;
-      /* dark passages are laid in LONG, LAZY, near-parallel courses — the
-         reference fills its blacks calmly; whorls and orbits are the
-         machine's tell, so darkness silences the noisy tangent field */
+      /* featureless, dark and busy-texture regions ALL fall back to the
+         calm drift — long near-parallel courses with a slow wander, never
+         concentric fans. Only where the image itself has a coherent form
+         does the tangent field get to steer. */
       const dk=Math.max(0,1-gray[i]/0.28);
-      const thFan=fanAngleAt(x,y,dk>0.3?0.04:0.12);
+      const thDrift=driftAt(x,y,0.5)*CFG.waves;
       const fw=Math.min(1,(0.65*(1-calm)+0.9*tex)*(CFG.waves?1:0)+0.85*dk);
-      const cW=(1-fw)*Math.cos(2*thWave)+fw*Math.cos(2*thFan);
-      const sW=(1-fw)*Math.sin(2*thWave)+fw*Math.sin(2*thFan);
+      const cW=(1-fw)*Math.cos(2*thWave)+fw*Math.cos(2*thDrift);
+      const sW=(1-fw)*Math.sin(2*thWave)+fw*Math.sin(2*thDrift);
       const wI=wImg*(1-0.8*dk);
       cB=wI*Math.cos(2*thBT)+(1-wI)*cW;
       sB=wI*Math.sin(2*thBT)+(1-wI)*sW;
