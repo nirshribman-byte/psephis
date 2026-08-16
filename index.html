@@ -64,14 +64,17 @@ header,.frame{max-width:1460px;margin-inline:auto}
   outline-offset:-7px;
   box-shadow:var(--shadow), inset 0 0 80px rgba(0,0,0,.55);
   border-radius:2px;
-  min-height:420px;
+  /* the workbench owns its column: fill the viewport height, never float
+     as a small box in a beige void */
+  width:100%;
+  min-height:clamp(420px, calc(100vh - 230px), 820px);
   max-height:calc(100vh - 160px);
   max-width:100%;
   display:flex;align-items:center;justify-content:center;
   padding:30px 30px 44px;
   overflow:hidden;
 }
-#stage.hasArt{width:fit-content}
+#stage.hasArt{width:fit-content;min-height:420px}
 #stage.zoomed{align-items:flex-start;justify-content:flex-start;overflow:auto;width:100%}
 #canvas{max-width:calc(100vw - 480px);max-height:calc(100vh - 250px);display:none;box-shadow:0 10px 40px -8px rgba(0,0,0,.7);cursor:zoom-in;transition:opacity .25s;touch-action:none;-webkit-user-select:none;user-select:none}
 #stage.zoomed #canvas{max-width:none;max-height:none;cursor:zoom-out}
@@ -153,7 +156,7 @@ aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
   color:var(--ink-soft);
 }
 .section .title output{font-family:'GFS Didot',serif;font-size:15px;color:var(--terra);letter-spacing:0}
-.section .cap{font-size:11.5px;color:#6f6552;margin:1px 0 2px}
+.section .cap{font-size:12.5px;color:#5d5444;margin:1px 0 2px}
 input[type=range]{
   -webkit-appearance:none;appearance:none;width:100%;height:23px;background:transparent;cursor:pointer;
 }
@@ -250,12 +253,12 @@ input[type=range]:disabled{opacity:.35;cursor:default}
       <button id="reset" title="Return every control to its default">Reset</button>
     </div>
     <div class="section">
-      <label class="title" for="c_size">Tessera size <output id="o_size" aria-live="polite">10</output></label>
+      <label class="title" for="c_size">Tessera size <output id="o_size" aria-live="polite">10 px</output></label>
       <p class="cap">How large each stone is cut · 4–26 px</p>
       <input type="range" id="c_size" min="4" max="26" value="10" step="1" aria-label="Tessera size">
     </div>
     <div class="section">
-      <label class="title" for="c_gap">Joint width <output id="o_gap" aria-live="polite">2.0</output></label>
+      <label class="title" for="c_gap">Joint width <output id="o_gap" aria-live="polite">2.0 px</output></label>
       <p class="cap">0 — close cut, stones butted · 6 — wide mortar</p>
       <input type="range" id="c_gap" min="0" max="6" value="2" step="0.5" aria-label="Joint width, zero is close cut">
     </div>
@@ -265,7 +268,7 @@ input[type=range]:disabled{opacity:.35;cursor:default}
       <input type="range" id="c_pal" min="6" max="28" value="16" step="1" aria-label="Number of palette stones">
     </div>
     <div class="section">
-      <label class="title" for="c_fid">Fidelity <output id="o_fid" aria-live="polite">Free</output></label>
+      <label class="title" for="c_fid">Fidelity <output id="o_fid" aria-live="polite">0</output></label>
       <p class="cap">0 — free ancient palette · 100 — photo-true stones</p>
       <input type="range" id="c_fid" min="0" max="100" value="0" step="5" aria-label="Fidelity to the photograph">
     </div>
@@ -275,8 +278,8 @@ input[type=range]:disabled{opacity:.35;cursor:default}
       <input type="range" id="c_irr" min="0" max="100" value="55" step="5" aria-label="Irregularity of cuts">
     </div>
     <div class="section">
-      <label class="title" for="c_age">Weathering <output id="o_age" aria-live="polite">10</output></label><!-- output text handled in JS: 0 shows "None" -->
-      <p class="cap">Centuries of loss — patches of bare mortar</p>
+      <label class="title" for="c_age">Weathering <output id="o_age" aria-live="polite">10</output></label>
+      <p class="cap">Centuries of loss — 0 none · 100 patches of bare mortar</p>
       <input type="range" id="c_age" min="0" max="100" value="10" step="5" aria-label="Weathering amount">
     </div>
     <div class="section">
@@ -317,9 +320,11 @@ const dlBtn = $('download'), newBtn = $('newimg'), recutBtn = $('recut');
 /* ---------- controls ---------- */
 const controls = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
 const DEFAULTS = {size:10, gap:2, pal:16, fid:0, irr:55, age:10, style:'antique', layout:'vermiculatum'};
-const bindings = [['size','c_size','o_size',v=>v],['gap','c_gap','o_gap',v=>v===0?'0 · close cut':v.toFixed(1)],
-  ['pal','c_pal','o_pal',v=>v],['fid','c_fid','o_fid',v=>v===0?'Free':v],
-  ['irr','c_irr','o_irr',v=>v],['age','c_age','o_age',v=>v===0?'None':v]];
+/* one value-label rule: always the number (+ unit where one exists);
+   named endpoints live in the caption line, not in the value slot */
+const bindings = [['size','c_size','o_size',v=>v+' px'],['gap','c_gap','o_gap',v=>v.toFixed(1)+' px'],
+  ['pal','c_pal','o_pal',v=>v],['fid','c_fid','o_fid',v=>v],
+  ['irr','c_irr','o_irr',v=>v],['age','c_age','o_age',v=>v]];
 for (const [key,cid,oid,fmt] of bindings){
   const el=$(cid), out=$(oid);
   const paint=()=>{const p=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty('--fill',p+'%');};
@@ -766,7 +771,9 @@ async function renderMosaic(token,maxdim){
   }
   /* global palette + a small SUBJECT palette cut only from detailed
      regions, so a small figure owns its stones by construction */
-  const KSUB=Math.min(6,Math.max(3,Math.round(K*0.3)));
+  /* subject/shadow trays scale with K, so raising the palette slider buys
+     stones where the photo varies — not more near-duplicates in the sky */
+  const KSUB=Math.min(9,Math.max(3,Math.round(K*0.32)));
   let rawCents=kmeans(samples,Math.max(4,K-KSUB),rand);
   if(salSamples.length>60){
     const sub=kmeans(salSamples,KSUB,rand);
@@ -785,7 +792,7 @@ async function renderMosaic(token,maxdim){
     const darkThr=Math.min(90,sorted[(sorted.length*0.25)|0]);
     const darkSamples=samples.filter((s,i)=>lums[i]<darkThr);
     if(darkSamples.length>80){
-      const KD=Math.min(4,Math.max(2,Math.round(K*0.2)));
+      const KD=Math.min(6,Math.max(2,Math.round(K*0.22)));
       const dkC=kmeans(darkSamples,KD,rand);
       for(const c of dkC){
         let dmin=1e12;
@@ -901,6 +908,26 @@ async function renderMosaic(token,maxdim){
 
   /* --- grout ground --- */
   paintGrout(ctx,W,H,controls.style,rand,paletteLum);
+  {
+    /* dark passages: mortar inherits the local stone tone — a real panel
+       never lets joints outshine the stones, so a shadow mass stays a mass
+       instead of a bright net with dark knots */
+    const gc=document.createElement('canvas');gc.width=aw;gc.height=ah;
+    const gctx=gc.getContext('2d');
+    const gid=gctx.createImageData(aw,ah);
+    for(let i=0;i<aw*ah;i++){
+      const p=px((i%aw)*A,((i/aw)|0)*A);
+      const r=img[p],g2=img[p+1],b=img[p+2];
+      const l=r*0.299+g2*0.587+b*0.114;
+      const w=Math.max(0,Math.min(1,(150-l)/110));
+      gid.data[i*4]=r*0.82;gid.data[i*4+1]=g2*0.82;gid.data[i*4+2]=b*0.82;
+      gid.data[i*4+3]=235*w;
+    }
+    gctx.putImageData(gid,0,0);
+    ctx.save();ctx.imageSmoothingEnabled=true;ctx.filter='blur(3px)';
+    ctx.drawImage(gc,0,0,W,H);ctx.restore();
+    grain(ctx,W,H,0.05,rand);
+  }
   if(FID>0){
     /* adaptive grout: mortar takes the photograph's own local tone, darker
        and blurred — no more warm-beige veil over blue skies or teal storms */
@@ -929,6 +956,13 @@ async function renderMosaic(token,maxdim){
   }
   function occupy(x,y,sep){occ[(y/cell|0)*gw+(x/cell|0)].push([x,y,sep]);}
 
+  /* shadow packing: joints tighten as local luminance falls — stones crowd
+     together in dark masses the way the ancient panels pack their blacks */
+  const gapAt=CLOSE?()=>GAP:(x,y)=>{
+    const l=gray[Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0))];
+    return GAP*(0.4+0.6*Math.min(1,l/0.55));
+  };
+
   /* adaptive tessera size: fine stones near contours (vermiculatum).
      Near-contour size has an absolute ceiling so a large field size can
      never starve the subject of detail — emblemata are always cut fine */
@@ -953,6 +987,17 @@ async function renderMosaic(token,maxdim){
   };
 
   const taps=new Array(5);
+  /* dark-mass modeling: stretch values around the local mean inside shadow
+     masses so interior rows carry the shading — a figure is sculpted in
+     value steps, never left as one flat silhouette */
+  function darkStretch(r,g,b,x,y){
+    const lloc=r*0.299+g*0.587+b*0.114;
+    if(lloc>=120)return [r,g,b];
+    const bl=blurColAt(x,y);
+    const m=bl[0]*0.299+bl[1]*0.587+bl[2]*0.114;
+    const st=1+0.55*Math.min(1,(120-lloc)/120);
+    return [clamp(m+(r-m)*st),clamp(m+(g-m)*st),clamp(m+(b-m)*st)];
+  }
   function avgColorAt(x,y,sz){
     const o=sz*0.30;
     const pts=[[x,y],[x-o,y-o],[x+o,y-o],[x-o,y+o],[x+o,y+o]];
@@ -963,7 +1008,7 @@ async function renderMosaic(token,maxdim){
       let r=0,g=0,b=0;
       for(const t of taps){r+=t[0];g+=t[1];b+=t[2];}
       taps.sort((a,b)=>a[3]-b[3]);
-      return [r/5,g/5,b/5];
+      return darkStretch(r/5,g/5,b/5,x,y);
     }
     taps.sort((a,b)=>a[3]-b[3]);
     const med=taps[2];
@@ -978,7 +1023,7 @@ async function renderMosaic(token,maxdim){
       const bl=blurColAt(x,y);
       r=clamp(r+(r-bl[0])*k);g=clamp(g+(g-bl[1])*k);b=clamp(b+(b-bl[2])*k);
     }
-    return [r,g,b];
+    return darkStretch(r,g,b,x,y);
   }
   function nearestStone(c,prevIdx,eDist,sky,ban){
     const pixBlue=c[2]>c[1]&&c[2]>c[0];
@@ -1028,8 +1073,9 @@ async function renderMosaic(token,maxdim){
      the drawing stays legible at any fidelity. */
   function placeTile(x,y,th,sz,forceIdx,prevIdx){
     if(!(x>=sz*0.3&&y>=sz*0.3&&x<=W-sz*0.3&&y<=H-sz*0.3)) return -2;  // also rejects NaN
-    if(!free(x,y,sz+GAP)) return -2;
-    occupy(x,y,sz+GAP);
+    const gp=gapAt(x,y);
+    if(!free(x,y,sz+gp)) return -2;
+    occupy(x,y,sz+gp);
     placedCount++;
     if(missing(x,y)){tiles.push([x,y,th,null,sz]);return -3;}
     let avg=avgColorAt(x,y,sz);
@@ -1154,7 +1200,7 @@ async function renderMosaic(token,maxdim){
 
   function trace(sx,sy){
     const sz0=sizeAt(sx,sy);
-    if(!free(sx,sy,sz0+GAP))return;
+    if(!free(sx,sy,sz0+gapAt(sx,sy)))return;
     let th=angleAt(sx,sy);
     let idx=placeTile(sx,sy,th,sz0,null,-1);
     if(idx===-2)return;
@@ -1162,11 +1208,14 @@ async function renderMosaic(token,maxdim){
     for(const sgn of [1,-1]){
       let x=sx,y=sy,dx=Math.cos(th)*sgn,dy=Math.sin(th)*sgn,fails=0,prev=idx,run=0;
       for(let n=0;n<400;n++){
-        const sz=sizeAt(x,y), sep=sz+GAP;
+        const sz=sizeAt(x,y), sep=sz+gapAt(x,y);
         let a=angleAt(x+dx*sep*0.5,y+dy*sep*0.5);
         let vx=Math.cos(a),vy=Math.sin(a);
         if(vx*dx+vy*dy<0){vx=-vx;vy=-vy;}
-        x+=vx*sep;y+=vy*sep;dx=vx;dy=vy;
+        /* staggered stepping: joints must not align course-to-course, or
+           the open field reads as corduroy instead of hand-set rows */
+        const st=sep*(0.92+rand()*0.16);
+        x+=vx*st;y+=vy*st;dx=vx;dy=vy;
         if(x<0||y<0||x>W||y>H)break;
         const a2=angleAt(x,y), sz2=sizeAt(x,y);
         /* cap same-stone coherence runs so off-color stones scatter
@@ -1181,7 +1230,7 @@ async function renderMosaic(token,maxdim){
     }
   }
   function spawn(x,y,th,sz){
-    const s=sz+GAP;
+    const s=sz+gapAt(x,y);
     const nx=-Math.sin(th)*s,ny=Math.cos(th)*s;
     stack.push([x+nx,y+ny],[x-nx,y-ny]);
   }
@@ -1210,7 +1259,7 @@ async function renderMosaic(token,maxdim){
     for(let y=T*0.35;y<H;y+=step){
       for(let x=T*0.35;x<W;x+=step){
         const sz=sizeAt(x,y);
-        if(!free(x,y,sz+GAP))continue;
+        if(!free(x,y,sz+gapAt(x,y)))continue;
         placeTile(x,y,angleAt(x,y),sz,null,-1);
         n++;
       }
