@@ -309,8 +309,8 @@ input[type=range]:disabled{opacity:.35;cursor:default}
     </div>
     </div>
     <div class="actions">
-      <button class="btn primary" id="download" disabled title="Lay a photograph first">Download mosaic · 4K</button>
-      <p class="export-note" id="exportNote">Lay a photograph first — then the 4K export wakes</p>
+      <button class="btn primary" id="download" disabled title="Lay a photograph first">Download mosaic</button>
+      <p class="export-note" id="exportNote">Lay a photograph first — then the full-size export wakes</p>
       <div class="btnRow">
         <button class="btn ghost" id="recut" disabled title="Same settings, new random cuts">Re-cut stones</button>
         <button class="btn ghost" id="newimg" disabled>New photo</button>
@@ -572,7 +572,7 @@ dlBtn.onclick=async ()=>{
   dlBtn.disabled=true;
   const old=dlBtn.textContent;
   if(canvas.width<EXPORT_DIM && canvas.height<EXPORT_DIM){
-    dlBtn.textContent='Cutting 4K…';
+    dlBtn.textContent='Cutting full size…';
     await render(EXPORT_DIM,false);
   }
   dlBtn.textContent=old;dlBtn.disabled=false;
@@ -866,6 +866,33 @@ async function renderMosaic(token,maxdim){
       let dmin=1e12;
       for(const g of rawCents){const d=(c[0]-g[0])**2+(c[1]-g[1])**2+(c[2]-g[2])**2;if(d<dmin)dmin=d;}
       if(dmin>24*24)rawCents.push(c);
+    }
+  }
+  /* residual-error refinement: every stone the slider buys beyond the base
+     goes to whatever the palette currently renders WORST, not to another
+     near-duplicate midtone. This is what makes the slider visibly work. */
+  {
+    const extra=Math.max(0,K-12);
+    for(let n=0;n<extra;n++){
+      let worst=null,wd=-1;
+      for(let si=0;si<samples.length;si+=3){
+        const p=samples[si];
+        let bd2=1e12;
+        for(const c of rawCents){
+          const d=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2;
+          if(d<bd2)bd2=d;
+        }
+        if(bd2>wd){wd=bd2;worst=p;}
+      }
+      if(!worst||wd<200)break;
+      /* seed a stone on the worst-served color, then let its neighbourhood
+         pull it to that cluster's true center */
+      const near=samples.filter(p=>(p[0]-worst[0])**2+(p[1]-worst[1])**2+(p[2]-worst[2])**2<48*48);
+      if(near.length>8){
+        let r=0,g=0,b=0;
+        for(const p of near){r+=p[0];g+=p[1];b+=p[2];}
+        rawCents.push([r/near.length,g/near.length,b/near.length]);
+      } else rawCents.push(worst.slice());
     }
   }
   /* per-stone saliency: share of its members that came from detailed regions */
@@ -1237,6 +1264,12 @@ async function renderMosaic(token,maxdim){
         }
       }
     }
+    if(controls.style==='smalti'&&col){
+      /* smalti is glass: the same tray reads several values depending on how
+         each stone was set to catch the light. Flat hue is the dead giveaway */
+      const v=1+(rand()-0.5)*0.22, h=(rand()-0.5)*7;
+      col=[clamp(col[0]*v+h),clamp(col[1]*v),clamp(col[2]*v-h*0.6)];
+    }
     tiles.push([x,y,th,col,sz]);
     return idx;
   }
@@ -1326,6 +1359,7 @@ async function renderMosaic(token,maxdim){
     spawn(sx,sy,th,sz0);
     for(const sgn of [1,-1]){
       let x=sx,y=sy,dx=Math.cos(th)*sgn,dy=Math.sin(th)*sgn,fails=0,prev=idx,run=0,texRun=0,turnSum=0;
+      let brk=4+(rand()*5|0);   /* stones until the next register break */
       const MAXTURN=0.4;   /* per-step curvature clamp: a pulled row cannot kink */
       for(let n=0;n<400;n++){
         /* busy texture is laid in SHORT courses with hard direction resets —
@@ -1348,6 +1382,18 @@ async function renderMosaic(token,maxdim){
            the open field reads as corduroy instead of hand-set rows */
         const st=sep*(0.92+rand()*0.16);
         x+=vx*st;y+=vy*st;dx=vx;dy=vy;
+        /* REGISTER BREAK — the reference lays short runs (4-8 stones) and
+           then jogs: no mortar line survives across the panel. This is what
+           separates a hand's patchwork from a machine's corduroy. */
+        if(--brk<=0){
+          brk=4+(rand()*5|0);
+          const jog=(rand()<0.5?-1:1)*sep*(0.3+rand()*0.35);
+          x+=-vy*jog;y+=vx*jog;                      // lateral half-stone jog
+          const jt=(rand()-0.5)*0.26;                // 7 deg direction jitter
+          const c2j=Math.cos(jt),s2j=Math.sin(jt);
+          const ndx=dx*c2j-dy*s2j, ndy=dx*s2j+dy*c2j;
+          dx=ndx;dy=ndy;
+        }
         if(x<0||y<0||x>W||y>H)break;
         const a2=angleAt(x,y), sz2=sizeAt(x,y);
         /* cap same-stone coherence runs so off-color stones scatter
