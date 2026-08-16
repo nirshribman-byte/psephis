@@ -49,7 +49,7 @@ header .sub{font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:v
 .frame{position:relative;z-index:1;margin:0 34px}
 main{
   position:relative;z-index:1;
-  display:grid;grid-template-columns:minmax(0,1fr) 330px;
+  display:grid;grid-template-columns:minmax(0,1fr) 430px;
   gap:26px;padding:22px 34px 40px;align-items:start;
   max-width:1460px;margin-inline:auto;
 }
@@ -151,6 +151,14 @@ aside .head p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
 }
 #reset:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .section{padding:5px 22px 4px;border-top:1px solid var(--line)}
+/* the six sliders sit in two columns so the whole table fits above the fold */
+.sliderGrid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.sliderGrid .section{border-top:none;padding:6px 14px 4px 22px}
+.sliderGrid .section:nth-child(2n){padding:6px 22px 4px 14px;border-left:1px solid var(--line)}
+.sliderGrid .section:nth-child(n+3){border-top:1px solid var(--line)}
+.panelScroll::-webkit-scrollbar{width:8px}
+.panelScroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+.panelScroll::-webkit-scrollbar-track{background:transparent}
 .section .title{
   display:flex;justify-content:space-between;align-items:baseline;
   font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
@@ -254,35 +262,37 @@ input[type=range]:disabled{opacity:.35;cursor:default}
       </div>
       <button id="reset" title="Return every control to its default">Reset</button>
     </div>
+    <div class="sliderGrid">
     <div class="section">
       <label class="title" for="c_size">Tessera size <output id="o_size" aria-live="polite">10</output></label>
-      <p class="cap">How large each stone is cut · 4–26 px</p>
+      <p class="cap">4 px fine cut · 26 px bold cut</p>
       <input type="range" id="c_size" min="4" max="26" value="10" step="1" aria-label="Tessera size">
     </div>
     <div class="section">
       <label class="title" for="c_gap">Joint width <output id="o_gap" aria-live="polite">1</output></label>
-      <p class="cap">0 — close cut, stones butted · 6 px — wide mortar</p>
+      <p class="cap">0 close cut · 6 px wide mortar</p>
       <input type="range" id="c_gap" min="0" max="6" value="1" step="0.5" aria-label="Joint width, zero is close cut">
     </div>
     <div class="section">
       <label class="title" for="c_pal">Palette stones <output id="o_pal" aria-live="polite">16</output></label>
-      <p class="cap">How many stone colors are cut · 6–28</p>
+      <p class="cap">6 austere · 28 rich</p>
       <input type="range" id="c_pal" min="6" max="28" value="16" step="1" aria-label="Number of palette stones">
     </div>
     <div class="section">
       <label class="title" for="c_fid">Fidelity <output id="o_fid" aria-live="polite">0</output></label>
-      <p class="cap">0 — free ancient palette · 100 — photo-true stones</p>
+      <p class="cap">0 free ancient palette · 100 photo-true</p>
       <input type="range" id="c_fid" min="0" max="100" value="0" step="5" aria-label="Fidelity to the photograph">
     </div>
     <div class="section">
       <label class="title" for="c_irr">Hand of the maker <output id="o_irr" aria-live="polite">55</output></label>
-      <p class="cap">Irregularity of each cut &amp; row · 0–100</p>
+      <p class="cap">0 ruler-straight · 100 free hand</p>
       <input type="range" id="c_irr" min="0" max="100" value="55" step="5" aria-label="Irregularity of cuts">
     </div>
     <div class="section">
       <label class="title" for="c_age">Weathering <output id="o_age" aria-live="polite">10</output></label>
-      <p class="cap">Centuries of loss — 0 none · 100 patches of bare mortar</p>
+      <p class="cap">0 untouched · 100 bare mortar patches</p>
       <input type="range" id="c_age" min="0" max="100" value="10" step="5" aria-label="Weathering amount">
+    </div>
     </div>
     <div class="section">
       <span class="title" id="layTitle">Laying pattern</span>
@@ -296,7 +306,7 @@ input[type=range]:disabled{opacity:.35;cursor:default}
     </div>
     <div class="actions">
       <button class="btn primary" id="download" disabled title="Lay a photograph first">Download mosaic · 4K</button>
-      <p class="export-note" id="exportNote"></p>
+      <p class="export-note" id="exportNote">Lay a photograph first — then the 4K export wakes</p>
       <div class="btnRow">
         <button class="btn ghost" id="recut" disabled title="Same settings, new random cuts">Re-cut stones</button>
         <button class="btn ghost" id="newimg" disabled>New photo</button>
@@ -462,17 +472,25 @@ stage.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
 newBtn.onclick=()=>fileInp.click();
 
 /* sample thumbnails (only when served over http) */
-const SAMPLES=['samples/DSC_2464.jpg','samples/DSC_2824.jpg','samples/DSC_2599.jpg','samples/DSC_2714.jpg'];
+const SAMPLES=[['samples/DSC_2464.jpg','Open sky'],['samples/DSC_2824.jpg','The umbrella'],
+  ['samples/DSC_2599.jpg','Meadow'],['samples/DSC_2714.jpg','Dusk']];
 if(location.protocol.startsWith('http')){
   const wrap=$('samples');
   $('sampleLabel').style.display='block';
-  SAMPLES.forEach(src=>{
-    const t=new Image();t.src=src;t.title='Use this sample';t.alt='Sample photograph';t.tabIndex=0;
+  SAMPLES.forEach(([src,name])=>{
+    const fig=document.createElement('figure');
+    fig.style.cssText='margin:0;display:flex;flex-direction:column;align-items:center;gap:4px';
+    const t=new Image();t.src=src;t.title='Use this sample';t.alt=`Sample photograph: ${name}`;t.tabIndex=0;
     t.setAttribute('role','button');
-    t.onclick=e=>{e.stopPropagation();sampleToDataURL(src);};
-    t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();sampleToDataURL(src);}};
-    t.onerror=()=>t.remove();
-    wrap.appendChild(t);
+    const go=()=>sampleToDataURL(src);
+    t.onclick=e=>{e.stopPropagation();go();};
+    t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();go();}};
+    t.onerror=()=>fig.remove();
+    const cap=document.createElement('figcaption');
+    cap.textContent=name;
+    cap.style.cssText='font-size:11.5px;letter-spacing:.08em;color:#a2977e';
+    fig.appendChild(t);fig.appendChild(cap);
+    wrap.appendChild(fig);
   });
 } else {
   $('sampleNote').style.display='block';
@@ -864,7 +882,7 @@ async function renderMosaic(token,maxdim){
     /* absorb grey haze: bright low-chroma cells adjoining the sky join its
        tray, so warm k-means haze splits can't pepper the blue field —
        chromatic clouds (cream, pink dusk) stay outside on their chroma */
-    for(let it=0;it<6;it++){
+    for(let it=0;it<10;it++){
       let changed=0;
       for(let y=1;y<ah-1;y++)for(let x=1;x<aw-1;x++){
         const i=y*aw+x;
@@ -874,9 +892,9 @@ async function renderMosaic(token,maxdim){
         const r=img[p],g=img[p+1],b=img[p+2];
         const l=r*0.299+g*0.587+b*0.114;
         const ch=Math.max(r,g,b)-Math.min(r,g,b);
-        /* midtone haze only — bright cloud cores (l>=190) keep their own
+        /* midtone haze only — bright cloud cores (l>=200) keep their own
            cream tray, so clouds survive the absorption */
-        if(l>110&&l<190&&ch<24){skyMask[i]=1;changed++;}
+        if(l>105&&l<200&&ch<28){skyMask[i]=1;changed++;}
       }
       if(!changed)break;
     }
@@ -993,10 +1011,16 @@ async function renderMosaic(token,maxdim){
      Near-contour size has an absolute ceiling so a large field size can
      never starve the subject of detail — emblemata are always cut fine */
   const nearSz=Math.min(T*0.6, 5.5*resScale+T*0.18);
+  /* shadow masses and dark subjects are cut FINER — the workshop spends
+     small stones where the drawing is, and the drawing hides in the dark */
+  const darkFine=(x,y)=>{
+    const l=gray[Math.min(ah-1,Math.max(0,y/A|0))*aw+Math.min(aw-1,Math.max(0,x/A|0))];
+    return 0.75+0.25*Math.min(1,l/0.35);
+  };
   const sizeAt=CFG.adaptive ? (x,y)=>{
     const d=Math.min(1, edgeDistAt(x,y)/(3*T));
-    return nearSz+(T-nearSz)*d;
-  } : ()=>T;
+    return (nearSz+(T-nearSz)*d)*darkFine(x,y);
+  } : (x,y)=>T*darkFine(x,y);
 
   /* edge-aware color sampling: median-side, not mean-across-boundary */
   /* low-res color context for shock-sharpening: near an edge, a stone's
@@ -1056,9 +1080,15 @@ async function renderMosaic(token,maxdim){
   }
   function nearestStone(c,prevIdx,eDist,sky,ban){
     const pixBlue=c[2]>c[1]&&c[2]>c[0];
-    let bi=-1,bd=1e9;
+    let bi=-1,bd=1e9,banD=1e9;
     for(let k=0;k<cents.length;k++){
-      if(k===ban&&cents.length>1)continue;             // run-cap exclusion
+      if(k===ban&&cents.length>1){
+        /* remember how good the banned stone was — a long run is a lesser
+           sin than one wrong-colored stone in a course */
+        const s0=cents[k],d0r=c[0]-s0[0],d0g=c[1]-s0[1],d0b=c[2]-s0[2];
+        banD=d0r*d0r*0.6+d0g*d0g*0.9+d0b*d0b*0.5;
+        continue;
+      }
       if(sky&&anySkyStone&&!skyStone[k])continue;      // sky tray only
       const s=cents[k];
       const dr=c[0]-s[0],dg=c[1]-s[1],db=c[2]-s[2];
@@ -1073,6 +1103,7 @@ async function renderMosaic(token,maxdim){
       }
       if(dd<bd){bd=dd;bi=k;}}
     if(bi<0)bi=0;
+    else if(ban!=null&&ban>=0&&bd>banD*1.8)bi=ban;   /* repeat beats wrong color */
     /* course coherence in the open field only — near a contour every stone
        must tell the truth, or rows drag background through the subject */
     if(prevIdx>=0&&prevIdx!==bi&&!(sky&&anySkyStone&&!skyStone[prevIdx])){
@@ -1235,7 +1266,8 @@ async function renderMosaic(token,maxdim){
     if(idx===-2)return;
     spawn(sx,sy,th,sz0);
     for(const sgn of [1,-1]){
-      let x=sx,y=sy,dx=Math.cos(th)*sgn,dy=Math.sin(th)*sgn,fails=0,prev=idx,run=0,texRun=0;
+      let x=sx,y=sy,dx=Math.cos(th)*sgn,dy=Math.sin(th)*sgn,fails=0,prev=idx,run=0,texRun=0,turnSum=0;
+      const MAXTURN=0.4;   /* per-step curvature clamp: a pulled row cannot kink */
       for(let n=0;n<400;n++){
         /* busy texture is laid in SHORT courses with hard direction resets —
            long streamlines there read as Starry Night, not opus */
@@ -1244,6 +1276,15 @@ async function renderMosaic(token,maxdim){
         let a=angleAt(x+dx*sep*0.5,y+dy*sep*0.5);
         let vx=Math.cos(a),vy=Math.sin(a);
         if(vx*dx+vy*dy<0){vx=-vx;vy=-vy;}
+        /* clamp the turn: no chevron kinks, no tight spirals */
+        let dTurn=Math.atan2(dx*vy-dy*vx, dx*vx+dy*vy);   /* rotation d -> v */
+        if(Math.abs(dTurn)>MAXTURN){
+          const sg=Math.sign(dTurn),c=Math.cos(MAXTURN*sg),s=Math.sin(MAXTURN*sg);
+          vx=dx*c-dy*s;vy=dx*s+dy*c;dTurn=MAXTURN*sg;
+        }
+        /* hard-ban closed loops: no craftsman lays a bullseye coil */
+        turnSum+=dTurn;
+        if(Math.abs(turnSum)>4.2)break;
         /* staggered stepping: joints must not align course-to-course, or
            the open field reads as corduroy instead of hand-set rows */
         const st=sep*(0.92+rand()*0.16);
@@ -1511,10 +1552,10 @@ function treatStone(c,style,sal=0){
     if(ch<18){
       const lm=r*0.299+g*0.587+b*0.114;
       const an=lm>178?[242,235,214]:lm>92?[35,102,148]:[18,42,66];
-      const t=lm>178?0.35:0.55;
+      const t=lm>178?0.4:0.7;
       r=lerp(r,an[0],t);g=lerp(g,an[1],t);b=lerp(b,an[2],t);
     } else {
-      const s=Math.min(2.2,Math.max(1.15,46/ch));
+      const s=Math.min(2.2,Math.max(1.3,46/ch));
       r=clamp(l+(r-l)*s);g=clamp(l+(g-l)*s);b=clamp(l+(b-l)*s);
     }
   }
